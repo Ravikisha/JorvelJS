@@ -6,51 +6,44 @@ interface TemplateOption {
   desc: string;
   tag: string;
   recommended?: boolean;
-  templateFlag?: string;
+  /** Framework for `jorvel adapter add <fw>` — only the adapters the CLI ships. */
+  adapterFlag?: 'vue' | 'svelte' | 'solid';
 }
 
 const TEMPLATES: TemplateOption[] = [
   {
     id: 'jorvel',
-    name: 'MoxJS App',
-    desc: 'The official way to build microfrontend applications with jorvel.',
+    name: 'Jorvel + React',
+    desc: 'The official way to build microfrontend applications with Jorvel (React).',
     tag: 'Recommended',
     recommended: true,
   },
   {
-    id: 'react',
-    name: 'MoxJS + React',
-    desc: 'Integrate React microfrontends with jorvel seamlessly.',
-    tag: 'React',
-    templateFlag: 'react',
-  },
-  {
     id: 'vue',
-    name: 'MoxJS + Vue',
-    desc: 'Build microfrontends using Vue and jorvel.',
+    name: 'Jorvel + Vue',
+    desc: 'Add a Vue microfrontend with `jorvel adapter add vue`.',
     tag: 'Vue',
-    templateFlag: 'vue',
+    adapterFlag: 'vue',
   },
   {
     id: 'svelte',
-    name: 'MoxJS + Svelte',
-    desc: 'Create powerful microfrontends with Svelte and jorvel.',
+    name: 'Jorvel + Svelte',
+    desc: 'Add a Svelte microfrontend with `jorvel adapter add svelte`.',
     tag: 'Svelte',
-    templateFlag: 'svelte',
+    adapterFlag: 'svelte',
   },
   {
-    id: 'angular',
-    name: 'MoxJS + Angular',
-    desc: 'Use Angular microfrontends with jorvel.',
-    tag: 'Angular',
-    templateFlag: 'angular',
+    id: 'solid',
+    name: 'Jorvel + Solid',
+    desc: 'Add a Solid microfrontend with `jorvel adapter add solid`.',
+    tag: 'Solid',
+    adapterFlag: 'solid',
   },
   {
     id: 'blank',
     name: 'Custom (Blank)',
-    desc: 'Start with a minimal jorvel setup and add what you need.',
+    desc: 'Start with a minimal Jorvel setup and add what you need.',
     tag: 'Vanilla',
-    templateFlag: 'blank',
   },
 ];
 
@@ -58,7 +51,7 @@ export interface WelcomeProps {
   defaultProjectName?: string;
 }
 
-export function Welcome({ defaultProjectName = 'my-mox-app' }: WelcomeProps) {
+export function Welcome({ defaultProjectName = 'my-jorvel-app' }: WelcomeProps) {
   const [selected, setSelected] = useState<string>('jorvel');
   const [projectName, setProjectName] = useState<string>(defaultProjectName);
   const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
@@ -69,16 +62,21 @@ export function Welcome({ defaultProjectName = 'my-mox-app' }: WelcomeProps) {
   const [copied, setCopied] = useState<boolean>(false);
 
   const tpl = TEMPLATES.find((t) => t.id === selected) ?? TEMPLATES[0];
-  const safeName = (projectName || 'my-mox-app').trim().replace(/\s+/g, '-');
+  const safeName = (projectName || 'my-jorvel-app').trim().replace(/\s+/g, '-');
 
+  // `jorvel init` only accepts `<name>` and `--tailwind` (plus -y / --no-git).
+  // The other toggles below map to FOLLOW-UP commands, not init flags — emitting
+  // `--template/--ssr/--ci/--with-remote` would error.
   const flags: string[] = [];
-  if (tpl.templateFlag) flags.push(`--template ${tpl.templateFlag}`);
   if (tailwind) flags.push('--tailwind');
-  if (ssr) flags.push('--ssr');
-  if (ci) flags.push('--ci');
-  if (exampleRemote) flags.push('--with-remote');
-
   const cmd = `npx jorvel@latest init ${safeName}${flags.length ? ' ' + flags.join(' ') : ''}`;
+
+  // Real next-step commands derived from the toggles.
+  const followUps: string[] = [`cd ${safeName}`];
+  if (tpl.adapterFlag) followUps.push(`jorvel adapter add ${tpl.adapterFlag} --name ${tpl.adapterFlag}-app`);
+  followUps.push('jorvel generate host shell');
+  if (exampleRemote) followUps.push('jorvel generate remote dashboard');
+  followUps.push('jorvel federation', 'jorvel dev');
 
   function copyCmd() {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -96,7 +94,7 @@ export function Welcome({ defaultProjectName = 'my-mox-app' }: WelcomeProps) {
         <a className="mw-brand" href="/" aria-label="jorvel home">
           <Logo size={32} />
           <span className="mw-brand-word">
-            mox<span className="mw-brand-accent">js</span>
+            jorvel<span className="mw-brand-accent">js</span>
           </span>
         </a>
         <a
@@ -170,7 +168,7 @@ export function Welcome({ defaultProjectName = 'my-mox-app' }: WelcomeProps) {
               className="mw-input"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              placeholder="my-mox-app"
+              placeholder="my-jorvel-app"
               spellCheck={false}
               autoComplete="off"
             />
@@ -246,6 +244,16 @@ export function Welcome({ defaultProjectName = 'my-mox-app' }: WelcomeProps) {
                 <CopyIcon />
                 {copied ? 'Copied!' : 'Copy'}
               </button>
+            </div>
+            <p className="mw-start-sub">Then, inside the new workspace:</p>
+            <div className="mw-cmd-wrap">
+              <code className="mw-cmd">
+                {followUps.map((line, i) => (
+                  <span key={i} className="mw-cmd-tok mw-cmd-prog" style={{ display: 'block' }}>
+                    {line}
+                  </span>
+                ))}
+              </code>
             </div>
             <div className="mw-divider" aria-hidden>
               <span />

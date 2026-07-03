@@ -2,49 +2,19 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import { pathToFileURL } from 'node:url';
 import kleur from 'kleur';
+import type { JorvelWorkspaceConfig } from '@jorvel/types';
 import { JorvelCliError } from './errors.js';
+import { validateWorkspaceConfig } from './config-schema.js';
 
-export type CliWorkspaceConfig = {
-  name?: string;
-  appsDir?: string;
-  libsDir?: string;
-  features?: {
-    tailwind?: boolean;
-  };
-  orchestrator?: {
-    mode?: 'parallel' | 'on-demand';
-    proxyRemotes?: boolean;
-    hmrRemotes?: boolean;
-  };
-  federation?: {
-    shared?: string[];
-    /** CDN public path baked into every built remote. */
-    publicPath?: string;
-    /** Subresource Integrity: generate integrity="sha384-..." for remoteEntry scripts. */
-    sri?: boolean | { algo?: 'sha256' | 'sha384' | 'sha512' };
-    /** Remote origin allowlist — runtime registry will reject unlisted URLs. */
-    allowlist?: string[];
-    /** Warn when host and remote ship incompatible versions. */
-    versionCheck?: boolean;
-  };
-  security?: {
-    csp?: {
-      enabled?: boolean;
-      reportUri?: string;
-    };
-    allowInlineScripts?: boolean;
-  };
-  observability?: {
-    adapter?: 'console' | 'sentry' | 'none';
-    webVitals?: boolean;
-  };
-  deploy?: {
-    target?: 'vercel' | 'cloudflare' | 'netlify' | 'node' | 'docker';
-  };
+/**
+ * The CLI config type is the shared `@jorvel/types` `JorvelWorkspaceConfig` with
+ * one override: `plugins` here are live CLI plugin objects (functions), whereas
+ * the shared/JSON-schema `plugins` is an opaque array (functions can't live in
+ * JSON). Everything else is the single source of truth in `@jorvel/types` —
+ * do NOT re-declare config fields here.
+ */
+export type CliWorkspaceConfig = Omit<JorvelWorkspaceConfig, 'plugins'> & {
   plugins?: CliPlugin[];
-  build?: {
-    compress?: boolean;
-  };
 };
 
 export type CliPlugin = {
@@ -127,18 +97,18 @@ async function loadTsConfig(tsPath: string): Promise<CliWorkspaceConfig | null> 
   // JS, so `await import('jorvel.config.ts')` either silently no-ops or runs
   // user code unchecked. We require a pre-transpiled `jorvel.config.js` (or .mjs)
   // sibling. Users who like TS should compile through tsx/jiti themselves.
+  //
+  // A `jorvel.config.ts` with NO compiled sibling is treated as a typed-but-not-
+  // -loadable file: we skip it (debug-warn) rather than hard-throwing. `jorvel
+  // init` ships a `jorvel.config.json` next to the `.ts` that carries the real
+  // runtime values, so an unaccompanied `.ts` is a no-op, not a fatal error.
   const candidate = tsPath.replace(/\.ts$/, '.js');
   if (!(await fs.pathExists(candidate))) {
-    throw new JorvelCliError(
-      `Found ${path.basename(tsPath)} but no compiled ${path.basename(candidate)}.`,
-      {
-        code: 'CONFIG-002',
-        hint: [
-          'Compile your TS config first (e.g. `tsc jorvel.config.ts`) or rename to .js / .mjs.',
-          'The CLI no longer imports raw .ts to avoid arbitrary-code-execution surprises.',
-        ],
-      },
+    debugWarn(
+      `Found ${path.basename(tsPath)} but no compiled ${path.basename(candidate)} — skipping it. ` +
+        `Compile it (e.g. \`tsc ${path.basename(tsPath)}\`) or rename to .js / .mjs to have it loaded.`,
     );
+    return null;
   }
   try {
     const mod = (await import(pathToFileURL(candidate).href)) as Record<string, unknown>;
@@ -168,6 +138,7 @@ export async function loadWorkspaceConfig(workspaceDir: string): Promise<LoadCon
 
   let cfg: CliWorkspaceConfig = {};
   let foundAny = false;
+  let loadedCompiled = false;
 
   if (await fs.pathExists(jsonPath)) {
     foundAny = true;
@@ -178,6 +149,7 @@ export async function loadWorkspaceConfig(workspaceDir: string): Promise<LoadCon
   for (const p of [mjsPath, jsPath]) {
     if (await fs.pathExists(p)) {
       foundAny = true;
+      loadedCompiled = true;
       try {
         const mod = (await import(pathToFileURL(p).href)) as Record<string, unknown>;
         const next = (mod['default'] ?? mod['config'] ?? null) as CliWorkspaceConfig | null;
@@ -194,7 +166,10 @@ export async function loadWorkspaceConfig(workspaceDir: string): Promise<LoadCon
     }
   }
 
-  if (await fs.pathExists(tsPath)) {
+  // Only consult the `.ts` when no compiled `.js`/`.mjs` was already loaded —
+  // `loadTsConfig` resolves the same `.js` sibling, so loading it here too would
+  // merge the compiled config twice (and re-run its module side effects).
+  if (!loadedCompiled && (await fs.pathExists(tsPath))) {
     foundAny = true;
     const tsCfg = await loadTsConfig(tsPath);
     if (tsCfg) cfg = deepMerge<CliWorkspaceConfig>(cfg, tsCfg);
@@ -202,6 +177,13 @@ export async function loadWorkspaceConfig(workspaceDir: string): Promise<LoadCon
 
   if (!foundAny) {
     debugWarn(`No jorvel.config.{json,js,mjs,ts} found in ${workspaceDir}.`);
+  } else {
+    // Best-effort schema validation. Debug-only so a schema hiccup never blocks
+    // a command — `jorvel config validate` surfaces the full report on demand.
+    const { valid, errors } = await validateWorkspaceConfig(cfg);
+    if (!valid) {
+      for (const e of errors) debugWarn(`jorvel.config invalid — ${e}`);
+    }
   }
 
   const plugins: CliPlugin[] = Array.isArray(cfg.plugins) ? Object.freeze([...cfg.plugins]) as CliPlugin[] : [];

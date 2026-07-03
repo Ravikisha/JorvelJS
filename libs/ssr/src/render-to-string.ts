@@ -89,6 +89,17 @@ export function injectIntoTemplate(
   let out = template.replaceAll('<!--ssr-outlet-->', html);
   if (out.includes('<!--ssr-head-->')) {
     out = out.replaceAll('<!--ssr-head-->', headExtra ?? '');
+  } else if (headExtra) {
+    // No explicit placeholder — don't silently drop head content (hydration
+    // scripts, preloads, nonces). Inject before </head>, else before </body>,
+    // else just prepend so it still ships.
+    if (out.includes('</head>')) {
+      out = out.replace('</head>', `${headExtra}</head>`);
+    } else if (out.includes('</body>')) {
+      out = out.replace('</body>', `${headExtra}</body>`);
+    } else {
+      out = headExtra + out;
+    }
   }
   return out;
 }

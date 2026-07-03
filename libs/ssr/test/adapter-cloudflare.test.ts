@@ -6,8 +6,8 @@ import path from 'node:path';
 import {
   createCloudflareWorker,
   createPagesFunction,
-  scaffoldDeploy,
 } from '../../adapter-cloudflare/src/index.js';
+import { scaffoldDeploy } from '../../adapter-cloudflare/src/deploy.js';
 import type { SsrRoute } from '../src/types.js';
 
 function App() {
@@ -30,6 +30,21 @@ describe('createCloudflareWorker', () => {
     const w = createCloudflareWorker({ App, template: TEMPLATE, routes: ROUTES });
     const res = await w.fetch(new Request('https://x/none'));
     expect(res.status).toBe(404);
+  });
+
+  it('returns a 304 (not a 500) on a matching If-None-Match', async () => {
+    // Regression: `new Response('', { status: 304 })` throws TypeError, so every
+    // ETag revalidation on a Worker became a 500.
+    const w = createCloudflareWorker({ App, template: TEMPLATE, routes: ROUTES, etag: true });
+    const first = await w.fetch(new Request('https://x/'));
+    const etag = first.headers.get('etag');
+    expect(etag).toBeTruthy();
+
+    const revalidated = await w.fetch(
+      new Request('https://x/', { headers: { 'If-None-Match': etag! } }),
+    );
+    expect(revalidated.status).toBe(304);
+    expect(await revalidated.text()).toBe('');
   });
 });
 

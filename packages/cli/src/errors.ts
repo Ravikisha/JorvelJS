@@ -59,6 +59,12 @@ export function printCliError(err: unknown, opts: CliErrorOptions = {}) {
     console.error(kleur.yellow(line));
   }
 
+  // Deep-link to the error reference so users can self-serve a fix.
+  if (codeStr) {
+    // eslint-disable-next-line no-console
+    console.error(kleur.dim(`Docs: https://jorveljs.vercel.app/docs/errors/${codeStr}`));
+  }
+
   const debug = process.env['JORVEL_DEBUG'] === '1' || process.env['JORVEL_DEBUG'] === 'true';
   if (debug && stack) {
     // eslint-disable-next-line no-console

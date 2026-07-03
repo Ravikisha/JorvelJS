@@ -216,6 +216,51 @@ constantTimeEqual(a: string, b: string): boolean;       // for state-cookie comp
 generateStateValue(bytes?: number): string;`}
       />
 
+      <h2 id="sessions">Sessions</h2>
+      <p>
+        Stateless signed-cookie sessions (HMAC-SHA256). See <a href="/docs/auth">Authentication</a>.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`class SessionManager<T> {
+  constructor(opts: { secret: string; verifySecrets?: string[]; cookieName?; maxAge?; cookie?; now? });
+  sign(data: T): Promise<string>;                 // payload.signature token
+  verify(token): Promise<T | null>;               // null if invalid/expired/tampered
+  seal(data: T): Promise<string>;                  // Set-Cookie (HttpOnly Secure SameSite=Lax)
+  destroy(): string;                               // Set-Cookie clearing the session
+  read(src: string | Request): Promise<T | null>;
+  requireUser(src: string | Request): Promise<T>;  // throws SessionRequiredError (status 401)
+}
+getSession<T>(src, opts): Promise<T | null>;
+requireUser<T>(src, opts): Promise<T>;
+
+// OAuth provider presets + profile fetch
+OAUTH_PROVIDERS.github | .google | .microsoft;     // { authorizationEndpoint, tokenEndpoint, userinfoEndpoint, defaultScope }
+fetchUserInfo<T>(provider, accessToken, fetcher?): Promise<T>;`}
+      />
+
+      <h2 id="csrf">CSRF</h2>
+      <p>
+        Signed double-submit cookie. See <a href="/docs/forms">Forms &amp; CSRF</a>.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`issueCsrfToken(opts?: { cookieName?; headerName?; fieldName?; secret?; cookie? }):
+  Promise<{ token: string; setCookie: string }>;
+
+verifyCsrf(req: { method; headers }, opts?, submittedToken?):
+  Promise<{ ok: true } | { ok: false; reason: 'missing-cookie'|'missing-token'|'mismatch'|'bad-signature' }>;
+
+csrfFieldName(opts?): string;
+
+// low-level cookie/crypto primitives
+serializeCookie(name, value, opts?): string;
+parseCookieHeader(header): Record<string, string>;
+randomToken(bytes?): string;
+hmacSign(data, secret): Promise<string>;  hmacVerify(data, sig, secret): Promise<boolean>;
+timingSafeEqual(a, b): boolean;`}
+      />
+
       <h2 id="sandbox">Sandbox bridge</h2>
       <p>
         Postmessage bridge between a sandboxed iframe and the host. The bridge enforces an origin

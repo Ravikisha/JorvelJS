@@ -31,6 +31,24 @@ export {
 
 export { connectDevtools, type DevtoolsOptions } from './devtools.js';
 
+export {
+  atom,
+  derivedAtom,
+  isWritableAtom,
+  type ReadableAtom,
+  type WritableAtom,
+} from './atom.js';
+
+export {
+  createServerStore,
+  createHydratedStore,
+  dehydrateAll,
+  serializeState,
+  readHydratedState,
+  type ServerStore,
+  type DehydratedState,
+} from './server-store.js';
+
 export type StoreListener<T> = (value: T) => void;
 export type Unsubscribe = () => void;
 export type Reducer<S, A> = (state: S, action: A) => S;
@@ -88,6 +106,18 @@ export interface Store<S, A> {
    * reducer.
    */
   replaceState(next: S): void;
+  /**
+   * Coalesce multiple `dispatch` calls into a single subscriber notification.
+   * Nesting is safe — only the outermost `batch` releases the queue.
+   *
+   * ```ts
+   * store.batch(() => {
+   *   store.dispatch({ type: 'a' });
+   *   store.dispatch({ type: 'b' }); // only one notify after this returns
+   * });
+   * ```
+   */
+  batch<T>(fn: () => T): T;
   readonly listenerCount: number;
 }
 
@@ -95,7 +125,14 @@ export function createStore<S, A>(initialState: S, reducer: Reducer<S, A>): Stor
   let state = initialState;
   let currentReducer = reducer;
   let isDispatching = false;
+  // batch() depth: while >0, dispatches mutate `state` without notifying.
+  let batchDepth = 0;
+  let batchDirty = false;
   const listeners = new Set<StoreListener<S>>();
+
+  function notify(): void {
+    for (const l of [...listeners]) l(state);
+  }
 
   function getState(): S {
     return state;
@@ -116,7 +153,24 @@ export function createStore<S, A>(initialState: S, reducer: Reducer<S, A>): Stor
     }
     if (next === state) return;
     state = next;
-    for (const l of [...listeners]) l(state);
+    if (batchDepth > 0) {
+      batchDirty = true;
+      return;
+    }
+    notify();
+  }
+
+  function batch<T>(fn: () => T): T {
+    batchDepth++;
+    try {
+      return fn();
+    } finally {
+      batchDepth--;
+      if (batchDepth === 0 && batchDirty) {
+        batchDirty = false;
+        notify();
+      }
+    }
   }
 
   function subscribe(listener: StoreListener<S>): Unsubscribe {
@@ -136,7 +190,11 @@ export function createStore<S, A>(initialState: S, reducer: Reducer<S, A>): Stor
     }
     if (next === state) return;
     state = next;
-    for (const l of [...listeners]) l(state);
+    if (batchDepth > 0) {
+      batchDirty = true;
+      return;
+    }
+    notify();
   }
 
   return {
@@ -145,6 +203,7 @@ export function createStore<S, A>(initialState: S, reducer: Reducer<S, A>): Stor
     subscribe,
     replaceReducer,
     replaceState,
+    batch,
     get listenerCount() {
       return listeners.size;
     },

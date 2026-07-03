@@ -23,6 +23,13 @@ export default function SsrPage() {
         markers needed for hydration). Edge runtimes use <code>@jorvel/ssr/edge</code>; Node uses{' '}
         <code>@jorvel/ssr/node</code>.
       </p>
+      <Callout variant="info" title="Bare import is edge-safe">
+        The main <code>@jorvel/ssr</code> entry exports <code>worker</code>, <code>edge-light</code>,
+        and <code>browser</code> conditions that resolve to a <code>node:fs</code>-free build. So a
+        Workers / Vercel-Edge bundler that imports bare <code>@jorvel/ssr</code> won&apos;t drag Node
+        built-ins into the bundle — Node tooling still gets the full entry. You can keep using the
+        explicit <code>/edge</code> and <code>/node</code> subpaths to be unambiguous.
+      </Callout>
 
       <h2 id="render-to-string">renderRouteToString</h2>
       <CodeBlock
@@ -171,8 +178,36 @@ export default { fetch: (req: Request) => toResponse(handler(toEdgeRequest(req))
         When <code>htmlCache</code> is set and a response is already cached for{' '}
         <code>cacheKey(request)</code>, the adapter checks <code>If-None-Match</code> against the{' '}
         stored ETag <em>before</em> calling React. Hits return 304 with no render. Auto-disabled
-        when <code>enrichHead</code> is set (per-request HTML).
+        when <code>enrichHead</code> is set, or when <code>loaders</code> are present (per-request HTML).
       </Callout>
+
+      <Callout variant="info" title="Read-only by design">
+        The adapter SSR-renders <code>GET</code> and <code>HEAD</code> only — any other method
+        returns <strong>405</strong>. Route mutations through your API, not the renderer.
+      </Callout>
+
+      <h3 id="edge-adapter-loaders">Loaders in the edge adapter</h3>
+      <p>
+        Pass <code>loaders</code> to <code>createEdgeAdapter</code> and it runs the matched route
+        loaders inside the request context <em>before</em> render — so <code>useLoaderData()</code>{' '}
+        resolves during SSR. The collected data is serialized to{' '}
+        <code>window.__JORVEL_LOADER_DATA__</code> for the client to hydrate from (no second fetch),
+        and each loader&apos;s <code>setHeader</code> / <code>cacheControl</code> is merged into the
+        response. Because the HTML is now request-specific, the adapter auto-disables the HTML cache
+        whenever loaders are configured.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { createEdgeAdapter } from '@jorvel/ssr/edge';
+import { userLoader } from './loaders';
+
+const handler = createEdgeAdapter({
+  App,
+  template,
+  routes,
+  loaders: [userLoader],   // run before render; data → window.__JORVEL_LOADER_DATA__
+});`}
+      />
 
       <h2 id="static-export">Static export (SSG)</h2>
       <p>
@@ -294,6 +329,11 @@ function UserPage() {
   return <h1>{user?.name}</h1>;
 }`}
       />
+      <Callout variant="info" title="Serve client assets alongside SSR">
+        <code>jorvel ssr serve --static &lt;dir&gt;</code> serves the built client assets next to the
+        SSR handler, so the hydration bundles referenced in the rendered HTML resolve in dev and in
+        single-process deployments.
+      </Callout>
 
       <h2 id="request-context">Per-request context</h2>
       <p>
@@ -370,6 +410,66 @@ const head = \`<script id="__jorvel_state" type="application/json" nonce="\${non
   safeJsonForScript({ user, flags })
 }</script>\`;`}
       />
+
+      <h2 id="server-routes">Server routes (API + tRPC/Hono)</h2>
+      <p>
+        A dependency-free API router adapters consult <em>before</em> SSR. Return <code>null</code> on
+        no match to fall through to page rendering. Mount tRPC/Hono as a prefix <code>fallback</code>.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { createApiRouter, defineRoute, json } from '@jorvel/ssr';
+
+const api = createApiRouter([
+  defineRoute('GET', '/health', () => json({ ok: true })),
+  defineRoute('GET', '/users/:id', ({ params }) => json({ id: params.id })),
+], { prefix: '/api' });
+
+// in your adapter handler:
+const res = await api.handle(request);
+return res ?? renderSSR(request);
+
+// tRPC / Hono: mount their fetch handler as a fallback
+createApiRouter([], { prefix: '/trpc', fallback: ({ request }) => trpcFetchHandler(request) });`}
+      />
+
+      <h2 id="critical-css">Critical CSS</h2>
+      <p>
+        Inline above-the-fold CSS and defer the full sheet — a best-effort, dependency-free
+        heuristic that keeps rules whose selectors appear in the rendered HTML.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { inlineCriticalCss } from '@jorvel/ssr';
+
+const html = inlineCriticalCss(renderedHtml, fullCss, { href: '/assets/app.css' });
+// → <style data-critical>…used rules…</style> in <head>, full sheet loaded via media=print swap`}
+      />
+
+      <h2 id="isr">ISR — request-time regeneration</h2>
+      <p>
+        Serve cached HTML instantly and regenerate in the background when it goes stale
+        (stale-while-revalidate). Bring any <code>HtmlCache</code> (in-memory default, or Redis/KV).
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { serveWithISR, LruHtmlCache } from '@jorvel/ssr';
+
+const cache = new LruHtmlCache();
+
+const { html, status, cached, stale } = await serveWithISR({
+  cache,
+  key: url.pathname,
+  revalidateMs: 60_000,                 // fresh for 60s, then background-regenerate
+  render: () => renderRouteToString(App, { path: url.pathname }).then((html) => ({ html })),
+});
+// concurrent stale hits dedupe to ONE background render per key`}
+      />
+      <p>
+        Complements build-time <code>revalidateStaticPages</code> (on-demand static regeneration) and
+        the <code>ETag</code>/304 flow. Full PPR (streaming static shell + dynamic holes) is on the{' '}
+        <a href="/docs/roadmap">roadmap</a>.
+      </p>
     </>
   );
 }

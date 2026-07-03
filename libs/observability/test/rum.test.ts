@@ -59,21 +59,43 @@ describe('startRum', () => {
     rum.dispose();
   });
 
-  it('applies sampleRate via the supplied RNG', async () => {
-    const seq = [0.9, 0.05, 0.9, 0.05]; // only the .05s pass with rate=0.1
-    let i = 0;
+  it('samples once per session: keeps ALL events when sampled in', async () => {
+    // sampleRate is per-session, not per-event — a sampled-in session keeps
+    // every event (so a trace can be reconstructed).
     const { rum, batches } = collector({
       batchSize: 100,
       sampleRate: 0.1,
-      random: () => seq[i++ % seq.length]!,
+      random: () => 0.05, // 0.05 < 0.1 → session sampled in
     });
-    rum.enqueue({ type: 'metric', ts: 1, data: { name: 'drop', value: 1 } });
-    rum.enqueue({ type: 'metric', ts: 2, data: { name: 'keep', value: 1 } });
-    rum.enqueue({ type: 'metric', ts: 3, data: { name: 'drop', value: 1 } });
-    rum.enqueue({ type: 'metric', ts: 4, data: { name: 'keep', value: 1 } });
+    rum.enqueue({ type: 'metric', ts: 1, data: { name: 'a', value: 1 } });
+    rum.enqueue({ type: 'metric', ts: 2, data: { name: 'b', value: 1 } });
     await rum.flush();
-    expect(batches[0]!.events.map((e) => (e.data as { name: string }).name)).toEqual(['keep', 'keep']);
+    expect(batches[0]!.events.map((e) => (e.data as { name: string }).name)).toEqual(['a', 'b']);
     rum.dispose();
+  });
+
+  it('samples once per session: drops the WHOLE session when sampled out', async () => {
+    const { rum, batches } = collector({
+      batchSize: 100,
+      sampleRate: 0.1,
+      random: () => 0.9, // 0.9 >= 0.1 → session sampled out
+    });
+    rum.enqueue({ type: 'metric', ts: 1, data: { name: 'a', value: 1 } });
+    rum.enqueue({ type: 'metric', ts: 2, data: { name: 'b', value: 1 } });
+    await rum.flush();
+    expect(batches.length).toBe(0);
+    rum.dispose();
+  });
+
+  it('flushes buffered events on dispose (does not drop them)', async () => {
+    const { rum, batches } = collector({ batchSize: 100 });
+    rum.enqueue({ type: 'metric', ts: 1, data: { name: 'a', value: 1 } });
+    expect(rum.queued).toBe(1);
+    rum.dispose();
+    // dispose() triggers a final flush.
+    await Promise.resolve();
+    expect(batches.length).toBe(1);
+    expect(batches[0]!.events).toHaveLength(1);
   });
 
   it('honors the filter to drop matching events', async () => {

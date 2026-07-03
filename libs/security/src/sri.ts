@@ -7,6 +7,8 @@
  * an edge bundle.
  */
 
+import { base64FromBytes } from './base64.js';
+
 export type SriAlgo = 'sha256' | 'sha384' | 'sha512';
 
 const ALGO_TO_SUBTLE: Record<SriAlgo, AlgorithmIdentifier> = {
@@ -14,41 +16,6 @@ const ALGO_TO_SUBTLE: Record<SriAlgo, AlgorithmIdentifier> = {
   sha384: 'SHA-384',
   sha512: 'SHA-512',
 };
-
-const B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-function b64Char(idx: number): string {
-  return B64_ALPHABET[idx] as string;
-}
-
-function base64FromBytes(bytes: Uint8Array): string {
-  let out = '';
-  let i = 0;
-  for (; i + 2 < bytes.length; i += 3) {
-    const a = bytes[i] as number;
-    const b = bytes[i + 1] as number;
-    const c = bytes[i + 2] as number;
-    out +=
-      b64Char(a >> 2) +
-      b64Char(((a & 0x03) << 4) | (b >> 4)) +
-      b64Char(((b & 0x0f) << 2) | (c >> 6)) +
-      b64Char(c & 0x3f);
-  }
-  if (i < bytes.length) {
-    const a = bytes[i] as number;
-    if (i + 1 === bytes.length) {
-      out += b64Char(a >> 2) + b64Char((a & 0x03) << 4) + '==';
-    } else {
-      const b = bytes[i + 1] as number;
-      out +=
-        b64Char(a >> 2) +
-        b64Char(((a & 0x03) << 4) | (b >> 4)) +
-        b64Char((b & 0x0f) << 2) +
-        '=';
-    }
-  }
-  return out;
-}
 
 function toBytes(content: string | Uint8Array): Uint8Array {
   if (typeof content === 'string') return new TextEncoder().encode(content);

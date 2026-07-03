@@ -57,6 +57,16 @@ export function useOtelAdapter(tracer: OtelTracer, opts: UseOtelAdapterOptions =
     onRemoteLoad((e) => {
       const key = spanKey(e.remote, e.url);
       if (e.phase === 'start') {
+        // If a span for this key is already open (a second start arrived before
+        // the first ended), end the old one first so it isn't leaked unended.
+        const prior = open.get(key);
+        if (prior) {
+          try {
+            prior.end();
+          } catch {
+            /* ignore */
+          }
+        }
         const span = tracer.startSpan(remoteSpanName, {
           attributes: applyBase({
             'jorvel.remote': e.remote,

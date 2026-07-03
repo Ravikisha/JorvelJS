@@ -26,11 +26,18 @@ export default function ServiceWorker() {
       <h2 id="generate">Generate</h2>
       <CodeBlock
         language="bash"
-        code={`jorvel sw generate --app shell
-# writes apps/shell/public/jorvel-sw.js`}
+        code={`jorvel sw generate
+# discovers the host app → writes <host>/public/jorvel-sw.js
+
+jorvel sw generate --app shell   # or target an app explicitly`}
       />
 
-      <p>The generated SW reads the build manifest at install time and pre-caches the shell. Re-run the command on every build, or wire it into the <code>build</code> hook of your <code>jorvel.config.ts</code>.</p>
+      <p>
+        With no <code>--app</code>, the command discovers the workspace host app (honoring{' '}
+        <code>appsDir</code>) so you don&apos;t hardcode a folder name. The generated SW reads the
+        build manifest at install time and pre-caches the shell. Re-run the command on every build,
+        or wire it into your build script.
+      </p>
 
       <h2 id="register">Register</h2>
       <CodeBlock

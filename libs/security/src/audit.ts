@@ -43,13 +43,15 @@ export interface AuditLoggerOptions {
   now?: () => number;
 }
 
+// All entries MUST be lowercase: lookups go through `k.toLowerCase()`, so a
+// mixed-case key here (the old `'apiKey'`) would never match and silently leak.
 const DEFAULT_REDACT = new Set([
   'password',
   'pass',
   'pwd',
   'token',
   'secret',
-  'apiKey',
+  'apikey',
   'api_key',
   'authorization',
   'cookie',

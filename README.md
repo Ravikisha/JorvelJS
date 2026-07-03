@@ -1,9 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="logo/09-orchestrator-node.svg">
-    <source media="(prefers-color-scheme: light)" srcset="logo/09-orchestrator-node-light.svg">
-    <img src="logo/09-orchestrator-node.svg" alt="JORVEL" width="180" height="180">
-  </picture>
+  <img src="logo/logojorvel.png" alt="JORVEL" width="160" height="160">
 </p>
 
 <h1 align="center">JORVEL</h1>
@@ -44,12 +40,13 @@
 
 Micro-frontends solve a real problem — independent teams shipping independent frontends on independent cadences — but the tooling around them is fragmented. JORVEL bundles the missing pieces into one opinionated framework:
 
-- **Module Federation, configured for you.** Rspack `ModuleFederationPlugin` with React-singleton sharing, SRI, allowlists, CDN-aware public-path — out of the box.
-- **A real router.** Two-tier (host owns prefixes, remotes own sub-paths), file-based, typed, guarded, prefetch-aware. No `react-router` dependency.
-- **SSR + SSG + Edge.** Render to string, stream to a `ReadableStream`, export to disk, deploy to Vercel Edge / Cloudflare Workers / Node / Docker.
-- **A production toolbelt.** CSP builder, SRI helpers, RUM beacon, structured logger, Web Vitals, rate limiter, audit log — all edge-runtime safe.
-- **Cross-app primitives.** Event bus with typed schemas, shared state with `globalThis` fallback, i18n with ICU-lite interpolation.
-- **A CLI that scaffolds the whole thing.** `jorvel init` → workspace + CI + ESLint + Vitest + Playwright in one go.
+- **Module Federation, configured for you.** Rspack `ModuleFederationPlugin` with React-singleton sharing, SRI, allowlists, CDN-aware public-path — plus a `jorvel federation diff` CI gate, `impact` analysis, and `canary` rollouts.
+- **A real router.** Two-tier (host owns prefixes, remotes own sub-paths), file-based, typed, guarded, prefetch-aware, with per-segment `loading`/`error`, parallel routes/slots, route middleware, and typed search params. No `react-router` dependency.
+- **Data, forms & auth.** `defineLoader` + `defineAction`, `useQuery`/`useMutation` (TanStack-style), `useOptimistic`, `use(promise)`; a progressive-enhancement `<Form>` with CSRF; signed-cookie sessions, RBAC, and OAuth presets; `jorvel add db` scaffolds Drizzle.
+- **SSR + SSG + ISR + Edge.** Render to string, stream to a `ReadableStream`, static export, request-time ISR — deploy to Vercel / Cloudflare / Node / Docker / Bun / Deno / Netlify / AWS Lambda / GitHub Pages.
+- **A production toolbelt.** CSP builder, SRI, policy-header presets, rate limiter, audit log, W3C traceparent, analytics + log-drain adapters, Web Vitals dashboard — all edge-runtime safe.
+- **Cross-app primitives.** Event bus with typed schemas, shared state + Jotai-style atoms + hydratable server stores, i18n with full ICU + locale routing + RTL.
+- **A CLI that scaffolds the whole thing.** `npm create jorvel` → workspace + CI (CodeQL, gitleaks, Lighthouse, bundle-size, contract tests) + Husky + Changesets + ESLint + Vitest + RTL + MSW + Playwright in one go.
 
 > **Live demo + full docs:** **<https://jorveljs.vercel.app/>**
 
@@ -60,8 +57,10 @@ Micro-frontends solve a real problem — independent teams shipping independent 
 All packages live under the [`@jorvel`](https://www.npmjs.com/org/jorvel) scope on npm.
 
 ```sh
-# CLI (one-shot, no install needed)
-pnpm dlx jorvel@latest init my-app
+# Scaffold a workspace (recommended)
+npm create jorvel@latest my-app
+# pnpm create jorvel my-app · yarn create jorvel my-app · bun create jorvel my-app
+# or: pnpm dlx jorvel@latest init my-app
 
 # Or install per-package
 pnpm add @jorvel/runtime @jorvel/ssr @jorvel/security
@@ -78,11 +77,11 @@ pnpm dlx jorvel@latest init my-app
 cd my-app
 
 # 2. Generate host + remote
-jorvel scaffold app           # interactive
-# or non-interactive:
-# jorvel generate host shell --port 3000
-# jorvel generate remote dashboard --port 3001
-# jorvel federation
+jorvel generate host shell --port 3000
+jorvel generate remote dashboard --port 3001
+jorvel federation             # wire host → remote
+# jorvel add db                # optional: Drizzle backend
+# jorvel generate storybook    # optional: Storybook
 
 # 3. Run dev server (same-origin remotes + HMR)
 jorvel dev --proxy-remotes --hmr-remotes
@@ -105,7 +104,9 @@ jorvel generate remote dashboard --tailwind
 
 | Path | Package | Purpose |
 |---|---|---|
-| `packages/cli` | [`jorvel`](https://www.npmjs.com/package/jorvel) | `jorvel` CLI — init / generate / dev / build / federation / routes / deploy / SSR |
+| `packages/cli` | [`jorvel`](https://www.npmjs.com/package/jorvel) | `jorvel` CLI — init / generate / add / dev / build / federation (diff·impact·canary) / routes / deploy / diagnose / info / SSR |
+| `packages/create-jorvel` | [`create-jorvel`](https://www.npmjs.com/package/create-jorvel) | `npm create jorvel` scaffolder |
+| `packages/devtools-extension` | [`@jorvel/devtools-extension`](https://www.npmjs.com/package/@jorvel/devtools-extension) | Chrome/Firefox DevTools panel for federation state |
 | `libs/runtime` | [`@jorvel/runtime`](https://www.npmjs.com/package/@jorvel/runtime) | Router, routing components, hooks, remote loader, prefetch, islands, View Transitions, Shadow DOM, image, fonts |
 | `libs/ssr` | [`@jorvel/ssr`](https://www.npmjs.com/package/@jorvel/ssr) | `renderRouteToString`, streaming SSR, static export, edge adapter, loaders, fragments, request context |
 | `libs/security` | [`@jorvel/security`](https://www.npmjs.com/package/@jorvel/security) | CSP, SRI, origin allowlist, rate limit, audit log, OAuth helpers, sanitize |
@@ -117,6 +118,10 @@ jorvel generate remote dashboard --tailwind
 | `libs/adapter-vercel` | [`@jorvel/adapter-vercel`](https://www.npmjs.com/package/@jorvel/adapter-vercel) | Vercel Edge handler factory |
 | `libs/adapter-cloudflare` | [`@jorvel/adapter-cloudflare`](https://www.npmjs.com/package/@jorvel/adapter-cloudflare) | Cloudflare Workers / Pages handler |
 | `libs/adapter-node` | [`@jorvel/adapter-node`](https://www.npmjs.com/package/@jorvel/adapter-node) | Hardened Node server |
+| `libs/adapter-bun` | [`@jorvel/adapter-bun`](https://www.npmjs.com/package/@jorvel/adapter-bun) | Bun.serve handler + static assets |
+| `libs/adapter-deno` | [`@jorvel/adapter-deno`](https://www.npmjs.com/package/@jorvel/adapter-deno) | Deno Deploy handler |
+| `libs/adapter-netlify` | [`@jorvel/adapter-netlify`](https://www.npmjs.com/package/@jorvel/adapter-netlify) | Netlify Functions / Edge handler |
+| `libs/adapter-aws-lambda` | [`@jorvel/adapter-aws-lambda`](https://www.npmjs.com/package/@jorvel/adapter-aws-lambda) | API Gateway v2 + Lambda@Edge |
 | `libs/types` | [`@jorvel/types`](https://www.npmjs.com/package/@jorvel/types) | Shared types + federation contract DSL + JSON Schemas |
 | `libs/events` | [`@jorvel/events`](https://www.npmjs.com/package/@jorvel/events) | Shared event-name + payload registry |
 | `libs/rspack-route-assets` | [`@jorvel/rspack-route-assets`](https://www.npmjs.com/package/@jorvel/rspack-route-assets) | Per-route asset manifest plugin |
@@ -179,7 +184,33 @@ Run `jorvel routes` (or `jorvel routes --watch`) to generate `src/jorvel.routes.
 - SRI: `federation.sri.algo = "sha384"` on every `remoteEntry.js`.
 - Origin allowlist with `*` / `**` wildcards.
 
-### SSR & SSG
+### Data, forms & auth
+
+```tsx
+import { defineAction, useAction, useQuery, useOptimistic, Form } from '@jorvel/runtime';
+import { SessionManager, createRbac, issueCsrfToken, verifyCsrf } from '@jorvel/security';
+
+// reads (client cache, SWR)  ·  writes (mutations)
+const { data } = useQuery({ queryKey: ['todos'], queryFn: () => fetch('/api/todos').then(r => r.json()) });
+const create = defineAction(async (fd: FormData) => fetch('/api/todos', { method: 'POST', body: fd }));
+
+// progressive-enhancement form with CSRF
+<Form action={create} csrf={{ token }}>{(s) => <button disabled={s.pending}>Add</button>}</Form>
+
+// auth: signed-cookie session + RBAC
+const sessions = new SessionManager({ secret: process.env.SESSION_SECRET! });
+const user = await sessions.requireUser(request);       // throws 401 if absent
+createRbac({ roles: { admin: ['*'] } }).requirePermission(user.roles, 'posts:write');
+```
+
+- **Loaders/actions** — `defineLoader` (ssr) reads · `defineAction` mutations · `useAction`/`useFormAction`.
+- **Query cache** — `QueryClient` + `useQuery`/`useMutation` (dedupe, SWR, invalidation, optimistic).
+- **Cache tags** — `revalidateTag` / `revalidatePath`; `use(promise)`; `useOptimistic`.
+- **Auth** — `SessionManager`, `getSession`/`requireUser`, `createRbac`, OAuth presets (GitHub/Google/Microsoft).
+- **Forms** — `<Form>`, `issueCsrfToken`/`verifyCsrf` (signed double-submit), `parseMultipartRequest`, `v.*` validation.
+- **Database** — `jorvel add db [--driver sqlite|libsql]` scaffolds Drizzle (schema, client, migrations, seed, loader).
+
+### SSR, SSG & ISR
 
 ```sh
 jorvel ssr export                          # static export
@@ -191,8 +222,8 @@ Programmatic surface:
 
 - `renderRouteToString` + `injectIntoTemplate`
 - `renderRouteToStream` (Node) / `renderRouteToReadableStream` (edge)
-- `staticExport()`, `revalidateStaticPages()`
-- `createEdgeAdapter()` — Vercel Edge / CF Workers / Deno
+- `staticExport()`, `revalidateStaticPages()`, `serveWithISR()` (request-time stale-while-revalidate)
+- `createEdgeAdapter()`, `createApiRouter()`/`defineRoute()` (API + tRPC/Hono mount), `inlineCriticalCss()`
 - `ssrRenderRemote`, `createSsrRemoteOutlet` — server-side remote rendering
 - `defineLoader` / `useLoaderData` — server-only data fetchers
 
@@ -224,16 +255,21 @@ Programmatic surface:
 
 ## Deployment
 
-`jorvel deploy --target <vercel|cloudflare|node|docker>` scaffolds the adapter and platform config.
+`jorvel deploy --target <vercel|cloudflare|node|docker|netlify|github-pages>` scaffolds the adapter and platform config.
 
 | Target | Package | Notes |
 |---|---|---|
 | Vercel Edge | `@jorvel/adapter-vercel` | `export const config = { runtime: 'edge' }` |
 | Cloudflare Workers / Pages | `@jorvel/adapter-cloudflare` | KV-backed HTML cache; Durable Objects ready |
 | Node | `@jorvel/adapter-node` | Slowloris-hardened defaults, graceful SIGTERM |
+| Bun | `@jorvel/adapter-bun` | `Bun.serve` fetch handler + static assets |
+| Deno Deploy | `@jorvel/adapter-deno` | `Deno.serve` fetch handler |
+| Netlify | `@jorvel/adapter-netlify` | Functions + Edge Functions |
+| AWS | `@jorvel/adapter-aws-lambda` | API Gateway v2 + Lambda@Edge |
 | Docker | — | Multi-stage Dockerfile, optional K8s manifests |
+| GitHub Pages | — | Static export + Pages workflow |
 
-Pop remotes onto a CDN — set `federation.publicPath` in `jorvel.config.ts`.
+Pop remotes onto a CDN — set `federation.publicPath` in `jorvel.config.json`.
 
 ---
 
@@ -283,7 +319,7 @@ Coverage lands under each workspace's `coverage/`. Playwright writes an HTML rep
 
 ## Project status
 
-JORVEL is in active development. The core surface is stable; adapter packages and the SSR fragment renderer are evolving.
+**Production-ready.** The full framework surface — routing, data/forms/auth, SSR/SSG/ISR, federation tooling, security, observability, i18n, deployment adapters, and the CLI — is implemented, tested (1600+ unit tests), and documented. React Server Components are the one deliberate omission: federation + the RSC wire format aren't compatible upstream yet.
 
 Release model: Changesets with linked groups —
 
@@ -301,7 +337,7 @@ Issues + PRs welcome.
 
 ```sh
 git clone https://github.com/Ravikisha/JorvelJS.git
-cd MFJS
+cd JorvelJS
 pnpm install
 pnpm -r build
 pnpm -r test

@@ -43,11 +43,21 @@ type RouterStorage = {
 };
 
 let als: RouterStorage | null = null;
-let alsLoadAttempted = false;
+// Cache the in-flight load PROMISE, not just a boolean. The previous version set
+// an `attempted` flag synchronously but assigned `als` only after the async
+// import resolved — so a second withServerRouter() racing the first got `als ===
+// null` back and ran OUTSIDE the AsyncLocalStorage scope, breaking per-request
+// isolation (concurrent SSR requests bled into the fallback router). Sharing one
+// promise makes every concurrent caller await the same load.
+let alsPromise: Promise<RouterStorage | null> | null = null;
 
-async function loadAls(): Promise<RouterStorage | null> {
-  if (alsLoadAttempted) return als;
-  alsLoadAttempted = true;
+function loadAls(): Promise<RouterStorage | null> {
+  if (alsPromise) return alsPromise;
+  alsPromise = loadAlsOnce();
+  return alsPromise;
+}
+
+async function loadAlsOnce(): Promise<RouterStorage | null> {
   // Guard for non-Node runtimes (browser, edge) so bundlers can DCE this branch
   // when `process` is statically replaced (rspack DefinePlugin, vite define).
   const proc = (globalThis as { process?: { versions?: { node?: string } } }).process;

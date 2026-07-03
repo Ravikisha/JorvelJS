@@ -111,6 +111,43 @@ const store = getStore<State, Action>('counter', {
 store.dispatch({ type: 'inc' });`}
       />
 
+      <h2 id="atoms">Atoms (Jotai-style)</h2>
+      <p>
+        For fine-grained, bottom-up state, use <code>atom</code> + <code>derivedAtom</code>. Atoms
+        are module-scoped values you import; React bindings (<code>useAtom</code> /{' '}
+        <code>useAtomValue</code> / <code>useSetAtom</code>) live in <code>@jorvel/state/react</code>.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { atom, derivedAtom } from '@jorvel/state';
+
+export const count = atom(0);
+export const doubled = derivedAtom([count], ([c]) => c * 2);  // recomputes on count change
+
+count.set(5);          // or count.set((p) => p + 1)
+doubled.get();         // 10`}
+      />
+      <CodeBlock
+        language="tsx"
+        code={`import { useAtom, useAtomValue, useSetAtom } from '@jorvel/state/react';
+import { count, doubled } from './atoms.js';
+
+function Counter() {
+  const [n, setN] = useAtom(count);
+  const d = useAtomValue(doubled);          // re-renders only when doubled changes
+  return <button onClick={() => setN((p) => p + 1)}>{n} → {d}</button>;
+}
+
+function ResetButton() {
+  const setN = useSetAtom(count);           // setter only — does NOT re-render on change
+  return <button onClick={() => setN(0)}>reset</button>;
+}`}
+      />
+      <p>
+        <code>derivedAtom</code> takes explicit dependencies — the graph stays static and
+        predictable, and dep subscriptions attach only while something is listening.
+      </p>
+
       <h2>Memoized selectors</h2>
       <p>
         <code>createSelector</code> composes input selectors and caches the last result. Use it to
@@ -179,6 +216,35 @@ store.dispatch(({ dispatch }) => {
     .then((r) => r.json())
     .then((user) => dispatch({ type: 'user.set', user }));
 });`}
+      />
+
+      <Callout variant="info" title="Persistence round-trips custom serializers">
+        <code>persistStore</code> / <code>persistSimpleStore</code> write an envelope of{' '}
+        <code>{`{ v, state }`}</code> where <code>state</code> is the <em>serialized payload string</em>,
+        so a custom <code>serialize</code>/<code>deserialize</code> pair (superjson, Map, Date)
+        round-trips exactly. On detach they flush any pending debounced write, and they dedupe the
+        hydration echo so rehydrating doesn&apos;t re-trigger a save. <code>migrate</code> runs only
+        when the stored version is <em>below</em> the current one — never on a downgrade.
+      </Callout>
+
+      <h2 id="cross-tab-sync">Cross-tab sync</h2>
+      <p>
+        <code>syncStore</code> / <code>syncSimpleStore</code> (from{' '}
+        <code>@jorvel/state/sync</code>) mirror state across same-origin tabs over a{' '}
+        <code>BroadcastChannel</code>. Each local change is broadcast; incoming updates are applied
+        without re-broadcast (origin-tagged to avoid echo loops). It is a no-op where{' '}
+        <code>BroadcastChannel</code> is unavailable (SSR), and pairs with persistence — persist
+        rehydrates a fresh tab, sync keeps open tabs in step.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { getSimpleStore } from '@jorvel/state';
+import { syncSimpleStore } from '@jorvel/state/sync';
+
+const cart = getSimpleStore('cart', { items: [] });
+const stop = syncSimpleStore(cart, { channel: 'cart' }); // returns a detach fn
+
+// cart.set(...) in one tab now updates every other tab on the 'cart' channel.`}
       />
 
       <h2>Schema-validated events</h2>
@@ -326,6 +392,27 @@ afterEach(() => {
   _resetEventBus();
 });`}
       />
+
+      <h2 id="server-store">RSC-compatible server store</h2>
+      <p>
+        Populate a store on the server, <code>dehydrate()</code> it into the HTML, and{' '}
+        <code>hydrate()</code> on the client so the first render matches — no refetch, no flash.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { createServerStore, dehydrateAll, serializeState, createHydratedStore } from '@jorvel/state';
+
+// server
+const cart = createServerStore({ items: [] });
+const html = \`<script>window.__JORVEL_STATE__ = \${serializeState(dehydrateAll({ cart }))}</script>\`;
+
+// client (seeds from the embedded snapshot, else the fallback)
+const cart = createHydratedStore('cart', { items: [] });`}
+      />
+      <p>
+        The server side is hook-free (safe in RSC / edge handlers); the client gets{' '}
+        <code>get/set/subscribe</code>. <code>serializeState</code> escapes <code>&lt;/script&gt;</code>.
+      </p>
     </>
   );
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { matchPath } from './route-matcher.js';
 import { usePathname } from './routing.js';
+import { ErrorBoundary, type ErrorBoundaryFallbackProps } from './error-boundary.js';
 
 export interface NestedRoute {
   path: string;
@@ -8,6 +9,19 @@ export interface NestedRoute {
   lazy?: () => Promise<{ default: React.ComponentType<{ children?: React.ReactNode }> }>;
   children?: NestedRoute[];
   index?: boolean;
+  /**
+   * Per-segment Suspense fallback — the `loading.tsx` convention. Rendered
+   * while this segment's `lazy` component (or any Suspense-throwing descendant
+   * up to the next boundary) resolves.
+   */
+  loading?: React.ReactNode;
+  /**
+   * Per-segment error UI — the `error.tsx` convention. When a render in this
+   * segment (or a descendant below the next error boundary) throws, this
+   * fallback renders instead of bubbling to the parent segment. A render fn
+   * receives `{ error, reset }`; a bare node is shown as-is.
+   */
+  errorElement?: React.ReactNode | ((props: ErrorBoundaryFallbackProps) => React.ReactNode);
 }
 
 export interface MatchedRoute {
@@ -46,20 +60,57 @@ export function Outlet(): React.ReactElement | null {
   );
 }
 
-function RouteNode({ route }: { route: NestedRoute }): React.ReactElement {
+function RouteContent({ route }: { route: NestedRoute }): React.ReactElement {
   const [El, setEl] = React.useState<React.ComponentType<{ children?: React.ReactNode }> | null>(null);
+  const [lazyError, setLazyError] = React.useState<unknown>(null);
 
   React.useEffect(() => {
     let cancelled = false;
     if (route.lazy) {
-      route.lazy().then((m) => !cancelled && setEl(() => m.default));
+      route.lazy().then(
+        (m) => !cancelled && setEl(() => m.default),
+        (e) => !cancelled && setLazyError(e),
+      );
     }
     return () => { cancelled = true; };
   }, [route]);
 
+  // Surface a lazy-import failure to the nearest error boundary (the segment's
+  // own `errorElement`, if any). Throwing during render is what an ErrorBoundary
+  // catches — rejecting in the effect above would otherwise go unhandled.
+  if (lazyError != null) throw lazyError;
+
   if (route.element) return <>{route.element}</>;
   if (El) return <El />;
+  // Lazy still pending — render the segment's loading fallback (the
+  // `loading.tsx` convention). RouteNode also wraps us in <Suspense> so any
+  // descendant that throws a promise shows the same fallback.
+  if (route.lazy) return <>{route.loading ?? null}</>;
   return <></>;
+}
+
+/**
+ * Renders one matched segment, applying its per-segment `error.tsx`
+ * (ErrorBoundary) and `loading.tsx` (Suspense fallback) boundaries. A segment
+ * without `errorElement`/`loading` lets errors and pending states bubble to the
+ * nearest ancestor that does — matching the Next.js App Router contract.
+ */
+function RouteNode({ route }: { route: NestedRoute }): React.ReactElement {
+  const content = <RouteContent route={route} />;
+
+  const withSuspense =
+    route.loading !== undefined
+      ? <React.Suspense fallback={route.loading}>{content}</React.Suspense>
+      : content;
+
+  if (route.errorElement === undefined) return withSuspense;
+
+  const fallback =
+    typeof route.errorElement === 'function'
+      ? (route.errorElement as (p: ErrorBoundaryFallbackProps) => React.ReactNode)
+      : () => route.errorElement as React.ReactNode;
+
+  return <ErrorBoundary fallback={fallback}>{withSuspense}</ErrorBoundary>;
 }
 
 export interface NestedRouterProps {

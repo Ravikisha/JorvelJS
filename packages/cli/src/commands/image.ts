@@ -2,8 +2,10 @@ import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'fs-extra';
 import kleur from 'kleur';
+import { JorvelCliError } from '../errors.js';
 
 type OutputFormat = 'webp' | 'avif';
+const ALLOWED_FORMATS: OutputFormat[] = ['webp', 'avif'];
 
 export type ImageOptimizeOptions = {
   dir: string;
@@ -145,6 +147,20 @@ imageCommand
       include: parseCsvList(raw.include),
       dryRun: Boolean(raw.dryRun),
     };
+
+    // Validate up front — unknown formats used to fall through silently.
+    if (!Number.isFinite(opts.quality) || opts.quality < 1 || opts.quality > 100) {
+      throw new JorvelCliError(`--quality must be an integer 1-100 (got "${raw.quality}").`, {
+        code: 'IMG-001',
+      });
+    }
+    const badFormats = opts.formats.filter((f) => !ALLOWED_FORMATS.includes(f));
+    if (badFormats.length > 0) {
+      throw new JorvelCliError(
+        `Unknown --formats value(s): ${badFormats.join(', ')}. Allowed: ${ALLOWED_FORMATS.join(', ')}.`,
+        { code: 'IMG-002' },
+      );
+    }
 
     const workspaceDir = path.resolve(opts.dir);
     const jobs = await runImageOptimizations(opts);

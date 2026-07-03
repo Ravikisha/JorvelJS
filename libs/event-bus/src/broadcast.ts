@@ -87,14 +87,18 @@ export function connectBroadcast<Events extends EventMap>(
   const channel = (opts.channelFactory ?? defaultChannelFactory)(channelName);
   const originId = randomId();
 
-  // Mirror local → remote. `onAny` is convenient but we still need to skip
-  // re-broadcasting messages that originated remotely. A small "in flight"
-  // marker is enough: when we deliver a message we received, we suppress the
-  // next mirror for the same (event, payload) pair.
-  let suppress = false;
+  // Mirror local → remote. When we re-deliver a message we RECEIVED from another
+  // tab, that local re-emit must not be mirrored back out — but ONLY that exact
+  // (event, payload) pair. A blanket boolean would also swallow any *new* event a
+  // handler emits synchronously during delivery (e.g. a `user:login` handler that
+  // emits `analytics:track`), so those would never reach other tabs. We instead
+  // pin the precise inbound event+payload and compare by reference.
+  const NONE = Symbol('none');
+  let inboundEvent: string | null = null;
+  let inboundPayload: unknown = NONE;
 
   const offAny = bus.onAny((event, payload) => {
-    if (suppress) return;
+    if (inboundEvent === String(event) && Object.is(inboundPayload, payload)) return;
     if (opts.filter && !opts.filter(event, payload)) return;
     const message: BroadcastPayload = {
       event: String(event),
@@ -112,11 +116,15 @@ export function connectBroadcast<Events extends EventMap>(
     const data = ev.data;
     if (!isBroadcastPayload(data)) return;
     if (data[ORIGIN_KEY] === originId) return; // ignore echoes from this bus
-    suppress = true;
+    const prevEvent = inboundEvent;
+    const prevPayload = inboundPayload;
+    inboundEvent = data.event;
+    inboundPayload = data.payload;
     try {
       bus.emit(data.event as keyof Events, data.payload as Events[keyof Events]);
     } finally {
-      suppress = false;
+      inboundEvent = prevEvent;
+      inboundPayload = prevPayload;
     }
   };
 

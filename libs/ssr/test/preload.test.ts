@@ -49,13 +49,28 @@ describe('buildPreloadTags', () => {
 });
 
 describe('remoteEntryPreloads', () => {
-  it('produces modulepreload links with crossorigin', () => {
+  it('default is preload as=script (classic-script container)', () => {
     const out = remoteEntryPreloads([{ name: 'a', entryUrl: 'http://x/r.js' }]);
+    expect(out[0]).toMatchObject({
+      href: 'http://x/r.js',
+      rel: 'preload',
+      as: 'script',
+      crossorigin: 'anonymous',
+    });
+  });
+
+  it('produces modulepreload links when format: "esm"', () => {
+    const out = remoteEntryPreloads(
+      [{ name: 'a', entryUrl: 'http://x/r.js' }],
+      { format: 'esm' },
+    );
     expect(out[0]).toMatchObject({
       href: 'http://x/r.js',
       rel: 'modulepreload',
       crossorigin: 'anonymous',
     });
+    // modulepreload doesn't take an `as` attribute.
+    expect(out[0].as).toBeUndefined();
   });
 
   it('passes through integrity when provided', () => {

@@ -34,9 +34,9 @@ export default function GettingStarted() {
       <h2 id="prerequisites">Prerequisites</h2>
       <ul>
         <li>
-          <strong>Node.js 20+ (LTS recommended)</strong> on Linux, macOS, or Windows. The CLI uses{' '}
-          <code>node:test</code> / native <code>fetch</code> / <code>structuredClone</code>, so 18.x
-          may work but is not covered by CI.
+          <strong>Node.js 20, 22, or 24</strong> on Linux, macOS, or Windows — all three are
+          supported and exercised in CI. The CLI uses <code>node:test</code> / native{' '}
+          <code>fetch</code> / <code>structuredClone</code>, so 18.x may work but is not covered.
         </li>
         <li>
           <strong>pnpm 9.15+</strong> is the supported package manager. <code>npm 10+</code> and{' '}
@@ -71,23 +71,44 @@ export default function GettingStarted() {
         <TabsContent value="pnpm">
           <CodeBlock
             language="bash"
-            code={`corepack enable\ncorepack prepare pnpm@9.15.5 --activate\npnpm dlx jorvel@latest init my-app`}
+            code={`corepack enable\ncorepack prepare pnpm@9.15.5 --activate\n\n# shorthand\npnpm create jorvel my-app\n# or\npnpm dlx jorvel@latest init my-app`}
           />
         </TabsContent>
         <TabsContent value="npm">
-          <CodeBlock language="bash" code={`npx jorvel@latest init my-app`} />
+          <CodeBlock language="bash" code={`npm create jorvel@latest my-app\n# or\nnpx jorvel@latest init my-app`} />
         </TabsContent>
         <TabsContent value="yarn">
-          <CodeBlock language="bash" code={`yarn dlx jorvel@latest init my-app`} />
+          <CodeBlock language="bash" code={`yarn create jorvel my-app\n# or\nyarn dlx jorvel@latest init my-app`} />
         </TabsContent>
       </Tabs>
+
+      <p>
+        Run in a terminal and <code>init</code> is interactive — it prompts for a{' '}
+        <strong>template</strong> (host + remote · SaaS · blank), a <strong>package manager</strong>{' '}
+        (pnpm / npm / yarn / bun), and Tailwind. Pass them as flags to skip the prompts:
+      </p>
+      <CodeBlock
+        language="bash"
+        code={`npm create jorvel@latest my-app -- --template saas --pm pnpm --tailwind\n# create-jorvel forwards every flag to \`jorvel init\``}
+      />
+
+      <h2 id="sandbox">Try it in the browser</h2>
+      <p>
+        No install — open a starter in a StackBlitz sandbox and edit live:
+      </p>
+      <ul>
+        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/basic">Basic (host + remote)</a></li>
+        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/saas">SaaS (dashboard + marketing)</a></li>
+        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/ecommerce">E-commerce</a></li>
+      </ul>
 
       <h2 id="walkthrough">Walkthrough</h2>
 
       <Steps>
         <Step title="Initialize a workspace" active>
           <p className="mt-2">
-            <code>jorvel init</code> writes <code>jorvel.config.ts</code>, a workspace{' '}
+            <code>jorvel init</code> writes <code>jorvel.config.json</code> (the single config the
+            CLI loads), a <code>.env.example</code>, a workspace{' '}
             <code>tsconfig.base.json</code>, <code>pnpm-workspace.yaml</code>, a{' '}
             <code>.gitignore</code>, GitHub Actions for CI (<code>typecheck</code> →{' '}
             <code>lint</code> → <code>test</code> → <code>perf budget</code>), and a deploy
@@ -96,7 +117,7 @@ export default function GettingStarted() {
           </p>
           <CodeBlock
             language="bash"
-            code={`pnpm dlx jorvel@latest init my-app\ncd my-app\n\n# Inspect the new workspace\nls\n# .github/  .vscode/  apps/  libs/  jorvel.config.ts  package.json  pnpm-workspace.yaml  tsconfig.base.json`}
+            code={`pnpm dlx jorvel@latest init my-app\ncd my-app\n\n# Inspect the new workspace\nls\n# .github/  .vscode/  apps/  libs/  jorvel.config.json  .env.example  package.json  pnpm-workspace.yaml  tsconfig.base.json`}
           />
         </Step>
         <Step title="Generate a host and a remote">
@@ -117,7 +138,9 @@ export default function GettingStarted() {
           <p className="mt-2">
             <code>--proxy-remotes</code> serves every remote on the host&apos;s origin so CSP, cookies,
             and SRI behave like production. <code>--hmr-remotes</code> reloads the host when a remote
-            recompiles.
+            recompiles. Before launching, <code>dev</code> checks each app&apos;s port is free and
+            fails fast (<code>DEV-003</code>) with the next free port if one is taken — skip with{' '}
+            <code>--no-port-check</code>.
           </p>
         </Step>
         <Step title="Add a route">
@@ -201,7 +224,7 @@ export default function GettingStarted() {
 │           ├── remote.tsx      # Exposed entry point (./App)
 │           └── pages/          # File-based routes scanned by 'jorvel routes'
 ├── libs/                       # Shared libraries (contracts, ui-kit, etc.)
-├── jorvel.config.ts              # Workspace config: federation, security, deploy
+├── jorvel.config.json            # Workspace config: federation, security, deploy
 ├── pnpm-workspace.yaml         # pnpm workspace declaration
 ├── tsconfig.base.json          # Strict TS settings shared by every app
 └── .github/workflows/          # CI: typecheck / lint / test / build`}

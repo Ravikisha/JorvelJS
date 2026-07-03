@@ -2,23 +2,19 @@ import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'fs-extra';
 import kleur from 'kleur';
-import { spawn } from 'node:child_process';
+import { execa } from 'execa';
 import http from 'node:http';
+import net from 'node:net';
 import { WebSocketServer } from 'ws';
 import treeKill from 'tree-kill';
 import chokidar from 'chokidar';
 import { federationCommand } from './federation.js';
 import { routesCommand } from './routes.js';
 import { loadWorkspaceConfig } from '../config.js';
+import { JorvelCliError } from '../errors.js';
 
-const isWindows = process.platform === 'win32';
-
-function resolveCmd(cmd: string): string {
-  // pnpm on Windows is a .cmd shim — Node spawn cannot resolve it without shell:true.
-  // We swap to pnpm.cmd directly to keep arg quoting predictable.
-  if (isWindows && cmd === 'pnpm') return 'pnpm.cmd';
-  return cmd;
-}
+/** A long-running dev child process started via {@link run}. */
+type RunningChild = ReturnType<typeof run>;
 
 function killTree(pid: number | undefined, timeoutMs = 3_000): Promise<void> {
   return new Promise<void>((resolve) => {
@@ -29,7 +25,7 @@ function killTree(pid: number | undefined, timeoutMs = 3_000): Promise<void> {
       settled = true;
       treeKill(pid, 'SIGKILL', () => resolve());
     }, timeoutMs);
-    treeKill(pid, isWindows ? 'SIGTERM' : 'SIGTERM', () => {
+    treeKill(pid, 'SIGTERM', () => {
       if (settled) return;
       settled = true;
       clearTimeout(fallback);
@@ -45,7 +41,23 @@ type DevOpts = {
   hmrRemotes?: boolean;
   onDemand?: boolean;
   watch?: boolean;
+  only?: string;
+  exclude?: string;
+  portCheck?: boolean;
+  banner?: boolean;
 };
+
+/** ASCII banner printed at `jorvel dev` start (TTY only; `--no-banner` to skip). */
+export function printDevBanner(): void {
+  const lines = [
+    '     ╦╔═╗╦═╗╦  ╦╔═╗╦',
+    '     ║║ ║╠╦╝╚╗╔╝║╣ ║',
+    '    ╚╝╚═╝╩╚═ ╚╝ ╚═╝╩═╝',
+  ];
+  console.log('');
+  for (const l of lines) console.log(kleur.cyan(l));
+  console.log(kleur.gray('    federation-first React — dev server\n'));
+}
 
 type AppMeta = {
   name: string;
@@ -115,22 +127,86 @@ async function ensureRoutesManifests(workspaceDir: string) {
   return true;
 }
 
-function run(cmd: string, args: string[], cwd: string, env?: NodeJS.ProcessEnv) {
-  const child = spawn(resolveCmd(cmd), args, {
+// Distinct colors per app so interleaved multi-app output stays legible.
+const LABEL_COLORS = [kleur.cyan, kleur.magenta, kleur.green, kleur.yellow, kleur.blue, kleur.red];
+const labelColorFor = (() => {
+  const assigned = new Map<string, (s: string) => string>();
+  let i = 0;
+  return (label: string) => {
+    let c = assigned.get(label);
+    if (!c) {
+      c = LABEL_COLORS[i % LABEL_COLORS.length]!;
+      assigned.set(label, c);
+      i++;
+    }
+    return c;
+  };
+})();
+
+function writeTagged(out: NodeJS.WriteStream, label: string | undefined, buf: unknown): void {
+  if (!label) {
+    out.write(buf as Uint8Array);
+    return;
+  }
+  const tag = labelColorFor(label)(`[${label}] `);
+  // Prefix every line in the chunk; trailing newline yields a trailing empty
+  // segment we drop so we don't emit a bare tag.
+  const text = String(buf);
+  const tagged = text.replace(/\n(?!$)/g, '\n' + tag);
+  out.write(tag + tagged);
+}
+
+function run(cmd: string, args: string[], cwd: string, env?: NodeJS.ProcessEnv, label?: string) {
+  // execa resolves Windows .cmd/.bat shims correctly without shell:true — which
+  // Node >=20.12 (CVE-2024-27980) now rejects with EINVAL when shell:false. A
+  // plain `spawn('pnpm.cmd', …, { shell:false })` is fatal on Windows.
+  const child = execa(cmd, args, {
     cwd,
     stdio: ['inherit', 'pipe', 'pipe'],
-    shell: false,
     env: { ...process.env, ...env },
+    // Long-running children we manage by hand — don't reject the floating
+    // promise on non-zero exit (handled via the 'exit' listener below).
+    reject: false,
   });
 
-  child.stdout?.on('data', (buf) => process.stdout.write(buf));
-  child.stderr?.on('data', (buf) => process.stderr.write(buf));
+  child.stdout?.on('data', (buf) => writeTagged(process.stdout, label, buf));
+  child.stderr?.on('data', (buf) => writeTagged(process.stderr, label, buf));
 
   child.on('exit', (code) => {
-    if (code && code !== 0) process.exitCode = code;
+    if (code && code !== 0) {
+      process.exitCode = code;
+      if (label) {
+        console.error(labelColorFor(label)(`[${label}] exited with code ${code}`));
+      }
+    }
   });
 
+  // reject:false resolves rather than throws, but the floating promise still
+  // needs a catch to avoid an unhandledRejection if execa itself errors.
+  void child.catch(() => {});
+
   return child;
+}
+
+/**
+ * True when `port` can be bound on 127.0.0.1 (i.e. nothing else is listening).
+ * Resolves false on EADDRINUSE / EACCES rather than throwing.
+ */
+export function isPortFree(port: number, host = '127.0.0.1'): Promise<boolean> {
+  return new Promise((resolve) => {
+    const srv = net.createServer();
+    srv.once('error', () => resolve(false));
+    srv.once('listening', () => srv.close(() => resolve(true)));
+    srv.listen(port, host);
+  });
+}
+
+/** Find the first free port at or above `start` (bounded scan). */
+export async function findFreePort(start: number, attempts = 20): Promise<number | null> {
+  for (let p = start; p < start + attempts && p <= 65535; p++) {
+    if (await isPortFree(p)) return p;
+  }
+  return null;
 }
 
 export function _devEnvForApp(args: {
@@ -150,7 +226,7 @@ export function _devEnvForApp(args: {
   };
 }
 
-function attachGracefulShutdown(children: Array<ReturnType<typeof spawn>>) {
+function attachGracefulShutdown(children: Array<RunningChild>) {
   let shuttingDown = false;
 
   const shutdown = async (signal: NodeJS.Signals) => {
@@ -212,7 +288,7 @@ function createDevReloadServer() {
 }
 
 function attachRemoteRebuildWatcher(
-  children: Array<{ child: ReturnType<typeof spawn>; appName: string; appType: 'host' | 'remote' }>,
+  children: Array<{ child: RunningChild; appName: string; appType: 'host' | 'remote' }>,
   onRemoteRebuilt: (remoteName: string) => void
 ) {
   const buffers = new Map<number, string>();
@@ -259,8 +335,14 @@ async function writeHostProxyFederation(
   //   example: dashboard@http://localhost:3000/jorvel/remotes/dashboard/remoteEntry.js
   const rewritten: Record<string, string> = { ...cfg.remotes };
   for (const r of remotes) {
-    if (!rewritten[r.meta.name]) continue;
-    rewritten[r.meta.name] = `${r.meta.name}@http://localhost:${hostMeta.port}/jorvel/remotes/${r.meta.name}/remoteEntry.js`;
+    const existing = rewritten[r.meta.name];
+    if (!existing) continue;
+    // Preserve the declared container global (left of `@`) — it's the sanitized
+    // federation name and must match the remote's container; only the URL is
+    // rewritten to the same-origin proxy path.
+    const at = existing.indexOf('@');
+    const globalName = at >= 0 ? existing.slice(0, at) : r.meta.name;
+    rewritten[r.meta.name] = `${globalName}@http://localhost:${hostMeta.port}/jorvel/remotes/${r.meta.name}/remoteEntry.js`;
   }
 
   const outPath = path.join(hostDir, 'jorvel.federation.proxy.json');
@@ -274,26 +356,29 @@ export const devCommand = new Command('dev')
   .option('--no-federation', 'Disable auto-generation of jorvel.federation.json')
   .option(
     '--proxy-remotes',
-    'Rewrite host remotes to same-origin proxy paths and create apps/<host>/jorvel.federation.proxy.json (requires host rspack devServer proxy support)',
-    false
+    'Rewrite host remotes to same-origin proxy paths and create apps/<host>/jorvel.federation.proxy.json (requires host rspack devServer proxy support). Defaults to orchestrator.proxyRemotes in jorvel.config.',
   )
   .option(
     '--hmr-remotes',
-    'Dev UX: when a remote recompiles, trigger a host reload (requires host to call connectJorvelDevReload())',
-    false
+    'Dev UX: when a remote recompiles, trigger a host reload (requires host to call connectJorvelDevReload()). Defaults to orchestrator.hmrRemotes in jorvel.config.',
   )
   .option(
     '--on-demand',
-    'Start only the host initially; start remote dev servers automatically on first request (best-effort, requires proxy remotes mode)',
-    false
+    'Start only the host initially; start remote dev servers automatically on first request (best-effort, requires proxy remotes mode). Defaults to orchestrator.mode === "on-demand" in jorvel.config.',
   )
   .option(
     '--watch',
     'Watch workspace config/federation/routes files and restart the affected dev server(s) (best-effort)',
     false
   )
+  .option('--only <names>', 'Comma-separated app names to start (skip the rest)')
+  .option('--exclude <names>', 'Comma-separated app names to skip')
+  .option('--no-port-check', 'Skip the pre-flight check that each app port is free')
+  .option('--no-banner', 'Skip the ASCII banner on dev start')
   .action(async (opts: DevOpts) => {
     const workspaceDir = path.resolve(opts.dir);
+
+    if (opts.banner !== false && process.stdout.isTTY) printDevBanner();
 
   const { cfg: workspaceCfg } = await loadWorkspaceConfig(workspaceDir);
 
@@ -310,7 +395,7 @@ export const devCommand = new Command('dev')
     }
 
     const appFolders = (await fs.readdir(appsDir)).filter((f) => !f.startsWith('.'));
-    const appMetas: Array<{ dir: string; meta: AppMeta }> = [];
+    let appMetas: Array<{ dir: string; meta: AppMeta }> = [];
 
     for (const folder of appFolders) {
       const metaPath = path.join(appsDir, folder, 'jorvel.app.json');
@@ -322,6 +407,51 @@ export const devCommand = new Command('dev')
     if (appMetas.length === 0) {
       console.log(kleur.yellow('No apps found (missing jorvel.app.json). Generate one with `jorvel generate host|remote`.'));
       return;
+    }
+
+    // --only / --exclude filtering.
+    const parseNames = (s?: string) =>
+      s ? s.split(',').map((x) => x.trim()).filter(Boolean) : [];
+    const only = parseNames(opts.only);
+    const exclude = parseNames(opts.exclude);
+    if (only.length) appMetas = appMetas.filter((a) => only.includes(a.meta.name));
+    if (exclude.length) appMetas = appMetas.filter((a) => !exclude.includes(a.meta.name));
+    if (appMetas.length === 0) {
+      console.log(kleur.yellow('No apps left to run after --only/--exclude filtering.'));
+      return;
+    }
+
+    // Fail fast on duplicate ports — two dev servers on one port silently clobber.
+    const portOwner = new Map<number, string>();
+    for (const a of appMetas) {
+      const prev = portOwner.get(a.meta.port);
+      if (prev) {
+        throw new JorvelCliError(
+          `Port ${a.meta.port} is configured for both "${prev}" and "${a.meta.name}".`,
+          { code: 'DEV-002', hint: 'Give each app a unique `port` in its jorvel.app.json.' },
+        );
+      }
+      portOwner.set(a.meta.port, a.meta.name);
+    }
+
+    // Pre-flight: fail fast if an app's port is already taken by another
+    // process (a stale dev server, another project). Rspack reads its port from
+    // its own config, so we can't silently relocate it — surface a clear error
+    // with the next free port to use. Skip with --no-port-check.
+    if (opts.portCheck !== false) {
+      for (const a of appMetas) {
+        if (await isPortFree(a.meta.port)) continue;
+        const suggestion = await findFreePort(a.meta.port + 1);
+        throw new JorvelCliError(
+          `Port ${a.meta.port} (app "${a.meta.name}") is already in use.`,
+          {
+            code: 'DEV-003',
+            hint: suggestion
+              ? `Stop whatever is on :${a.meta.port}, set a free port (e.g. ${suggestion}) in apps/${a.meta.name}/jorvel.app.json, or re-run with --no-port-check.`
+              : `Stop whatever is on :${a.meta.port}, or re-run with --no-port-check.`,
+          },
+        );
+      }
     }
 
     if (opts.federation !== false) {
@@ -354,7 +484,7 @@ export const devCommand = new Command('dev')
     const reload = reloadServer ? await reloadServer.listen() : null;
 
     console.log(kleur.cyan(`Starting ${sorted.length} dev server(s)...`));
-    const children: Array<{ child: ReturnType<typeof spawn>; appName: string; appType: 'host' | 'remote' }> = [];
+    const children: Array<{ child: RunningChild; appName: string; appType: 'host' | 'remote' }> = [];
 
     // On-demand remote starter: a tiny HTTP server that the host dev-server proxy can call
     // before proxying remoteEntry/chunks. We keep it minimal and best-effort.
@@ -400,7 +530,7 @@ export const devCommand = new Command('dev')
               console.log(kleur.cyan(`[on-demand] starting remote ${name} (port ${remote.meta.port})`));
               // Spawn remote dev server.
               children.push({
-                child: run('pnpm', ['dev'], remote.dir, reload ? { JORVEL_DEV_RELOAD_URL: reload.url } : undefined),
+                child: run('pnpm', ['dev'], remote.dir, reload ? { JORVEL_DEV_RELOAD_URL: reload.url } : undefined, remote.meta.name),
                 appName: remote.meta.name,
                 appType: remote.meta.type,
               });
@@ -441,13 +571,13 @@ export const devCommand = new Command('dev')
             JORVEL_FEDERATION_FILE: 'jorvel.federation.proxy.json',
             ...(reload ? { JORVEL_DEV_RELOAD_URL: reload.url } : {}),
             ...(starterInfo ? { JORVEL_ON_DEMAND_STARTER_URL: starterInfo.url } : {}),
-          }),
+          }, app.meta.name),
           appName: app.meta.name,
           appType: app.meta.type,
         });
       } else {
         children.push({
-          child: run('pnpm', args, app.dir, reload ? { JORVEL_DEV_RELOAD_URL: reload.url } : undefined),
+          child: run('pnpm', args, app.dir, reload ? { JORVEL_DEV_RELOAD_URL: reload.url } : undefined, app.meta.name),
           appName: app.meta.name,
           appType: app.meta.type,
         });
@@ -467,7 +597,7 @@ export const devCommand = new Command('dev')
       process.once('exit', () => remoteStarter.close());
     }
 
-    const restartable = new Map<string, { meta: AppMeta; dir: string; env?: NodeJS.ProcessEnv; child: ReturnType<typeof spawn> }>();
+    const restartable = new Map<string, { meta: AppMeta; dir: string; env?: NodeJS.ProcessEnv; child: RunningChild }>();
 
     for (const c of children) {
       const app = appMetas.find((a) => a.meta.name === c.appName);
@@ -497,7 +627,7 @@ export const devCommand = new Command('dev')
         ...(reload?.url ? { reloadUrl: reload.url } : {}),
         ...(starterInfo?.url ? { starterUrl: starterInfo.url } : {}),
       });
-      const child = run('pnpm', args, entry.dir, env);
+      const child = run('pnpm', args, entry.dir, env, entry.meta.name);
       entry.child = child;
       children.push({ child, appName: entry.meta.name, appType: entry.meta.type });
     };

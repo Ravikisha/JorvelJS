@@ -61,12 +61,80 @@ describe('loadRemoteEntry', () => {
     expect(scripts.length).toBe(1);
   });
 
+  it('reloads when a different entryUrl is requested for an already-loaded name (blue-green/canary)', async () => {
+    const appendSpy = mockScriptLoad('dashboard');
+
+    await loadRemoteEntry({ name: 'dashboard', entryUrl: 'http://localhost:3001/remoteEntry.js' });
+    expect(appendSpy).toHaveBeenCalledTimes(1);
+    let script = document.head.querySelector('#jorvel-remote-dashboard') as HTMLScriptElement;
+    expect(script.src).toBe('http://localhost:3001/remoteEntry.js');
+
+    // Promote to a new URL under the SAME container name — must tear down the
+    // stale container + script and load the new entry (not silently no-op).
+    await loadRemoteEntry({ name: 'dashboard', entryUrl: 'http://localhost:4001/remoteEntry.js' });
+    expect(appendSpy).toHaveBeenCalledTimes(2);
+    const scripts = document.head.querySelectorAll('#jorvel-remote-dashboard');
+    expect(scripts.length).toBe(1);
+    script = scripts[0] as HTMLScriptElement;
+    expect(script.src).toBe('http://localhost:4001/remoteEntry.js');
+  });
+
+  it('still short-circuits when the SAME entryUrl is requested again', async () => {
+    const appendSpy = mockScriptLoad('dashboard');
+    await loadRemoteEntry({ name: 'dashboard', entryUrl: 'http://localhost:3001/remoteEntry.js' });
+    await loadRemoteEntry({ name: 'dashboard', entryUrl: 'http://localhost:3001/remoteEntry.js' });
+    expect(appendSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('skips injection when the container global is already present (pre-loaded)', async () => {
     (globalThis as any).dashboard = makeContainer();
     const appendSpy = vi.spyOn(document.head, 'appendChild');
 
     await loadRemoteEntry({ name: 'dashboard', entryUrl: 'http://localhost:3001/remoteEntry.js' });
 
+    expect(appendSpy).not.toHaveBeenCalled();
+  });
+
+  it('sets the integrity attribute on the injected script when provided', async () => {
+    mockScriptLoad('dashboard');
+    await loadRemoteEntry({
+      name: 'dashboard',
+      entryUrl: 'http://localhost:3001/remoteEntry.js',
+      integrity: 'sha384-abc',
+    });
+    const script = document.head.querySelector('#jorvel-remote-dashboard') as HTMLScriptElement;
+    expect(script.integrity).toBe('sha384-abc');
+  });
+
+  it('requireIntegrity rejects a remote with no integrity hash before injecting', async () => {
+    const appendSpy = vi.spyOn(document.head, 'appendChild');
+    await expect(
+      loadRemoteEntry(
+        { name: 'dashboard', entryUrl: 'http://localhost:3001/remoteEntry.js' },
+        { requireIntegrity: true }
+      )
+    ).rejects.toThrow(/no integrity hash/);
+    expect(appendSpy).not.toHaveBeenCalled();
+  });
+
+  it('requireIntegrity allows a remote that carries an integrity hash', async () => {
+    mockScriptLoad('dashboard');
+    await expect(
+      loadRemoteEntry(
+        { name: 'dashboard', entryUrl: 'http://localhost:3001/remoteEntry.js', integrity: 'sha384-abc' },
+        { requireIntegrity: true }
+      )
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects integrity combined with crossOrigin:none (SRI would not enforce)', async () => {
+    const appendSpy = vi.spyOn(document.head, 'appendChild');
+    await expect(
+      loadRemoteEntry(
+        { name: 'dashboard', entryUrl: 'http://localhost:3001/remoteEntry.js', integrity: 'sha384-abc' },
+        { crossOrigin: 'none' }
+      )
+    ).rejects.toThrow(/SRI is NOT enforced without CORS/);
     expect(appendSpy).not.toHaveBeenCalled();
   });
 
@@ -80,6 +148,32 @@ describe('loadRemoteEntry', () => {
     await expect(
       loadRemoteEntry({ name: 'analytics', entryUrl: 'http://bad-host/remoteEntry.js' })
     ).rejects.toThrow('Failed to load remoteEntry');
+  });
+
+  it('a retry after a failed load succeeds (failed script is removed, not left to hang)', async () => {
+    // First attempt: script errors. The failed <script> must be removed so the
+    // retry creates a fresh one instead of hanging on a node whose error event
+    // already fired.
+    const failSpy = vi.spyOn(document.head, 'appendChild').mockImplementation((node: any) => {
+      HTMLElement.prototype.appendChild.call(document.head, node);
+      setTimeout(() => node.onerror?.(), 0);
+      return node;
+    });
+
+    await expect(
+      loadRemoteEntry({ name: 'analytics', entryUrl: 'http://flaky-host/remoteEntry.js' })
+    ).rejects.toThrow('Failed to load remoteEntry');
+
+    // The failed script element must be gone.
+    expect(document.head.querySelector('#jorvel-remote-analytics')).toBeNull();
+
+    // Second attempt succeeds.
+    failSpy.mockRestore();
+    mockScriptLoad('analytics');
+    await expect(
+      loadRemoteEntry({ name: 'analytics', entryUrl: 'http://flaky-host/remoteEntry.js' })
+    ).resolves.toBeUndefined();
+    expect((globalThis as any).analytics).toBeTruthy();
   });
 
   it('rejects with timeout error when container global is never assigned after script load', async () => {

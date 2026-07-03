@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { createI18n, detectLocale, formatMessage } from '../src/index.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createI18n, detectLocale, formatMessage, getI18n, setI18n, _resetI18n } from '../src/index.js';
 
 describe('formatMessage — simple placeholders', () => {
   it('substitutes {name}', () => {
@@ -83,6 +83,26 @@ describe('createI18n', () => {
     expect(i.t('greet', { name: 'Ada' })).toBe('Hola, Ada');
   });
 
+  it('the latest setLocale wins even if an earlier one resolves later', async () => {
+    // 'fr' loader is slower than 'de' — 'de' was requested last, so it must win.
+    const loader = vi.fn(async (loc: string) => {
+      await new Promise((r) => setTimeout(r, loc === 'fr' ? 30 : 5));
+      return { greet: loc };
+    });
+    const i = createI18n({ locale: 'en', loader });
+    const p1 = i.setLocale('fr');
+    const p2 = i.setLocale('de');
+    await Promise.all([p1, p2]);
+    expect(i.locale).toBe('de');
+  });
+
+  it('dedupes concurrent loads of the same locale', async () => {
+    const loader = vi.fn(async () => ({ greet: 'x' }));
+    const i = createI18n({ locale: 'en', loader });
+    await Promise.all([i.setLocale('es'), i.setLocale('es')]);
+    expect(loader).toHaveBeenCalledTimes(1);
+  });
+
   it('load() warms a catalog without changing locale', async () => {
     const loader = vi.fn(async () => ({ greet: 'Hej' }));
     const i = createI18n({ locale: 'en', loader });
@@ -129,5 +149,25 @@ describe('detectLocale', () => {
 
   it('falls back when nothing matches', () => {
     expect(detectLocale('zh', ['en', 'fr'], 'en')).toBe('en');
+  });
+});
+
+describe('getI18n singleton', () => {
+  afterEach(() => _resetI18n());
+
+  it('returns the same instance across calls', () => {
+    const a = getI18n({ locale: 'en', catalogs: { en: { hi: 'Hi' } } });
+    const b = getI18n({ locale: 'fr' }); // opts ignored after first
+    expect(a).toBe(b);
+    expect(b.locale).toBe('en');
+    expect(b.t('hi')).toBe('Hi');
+  });
+
+  it('setI18n replaces the singleton', () => {
+    getI18n({ locale: 'en' });
+    const custom = createI18n({ locale: 'de', catalogs: { de: { hi: 'Hallo' } } });
+    setI18n(custom);
+    expect(getI18n()).toBe(custom);
+    expect(getI18n().t('hi')).toBe('Hallo');
   });
 });

@@ -66,7 +66,55 @@ type RouterOptions = {
         <li><code>&lt;Outlet /&gt;</code> — child slot</li>
         <li><code>useOutletParams&lt;T&gt;(): T</code></li>
         <li><code>resolveChain(routes, pathname): NestedMatch[]</code> — pure resolver, no React</li>
+        <li>
+          Per-segment boundaries: <code>NestedRoute.loading</code> (<code>loading.tsx</code>{' '}
+          Suspense fallback) and <code>NestedRoute.errorElement</code> (<code>error.tsx</code> —{' '}
+          node or <code>{'(p: { error, reset }) => ReactNode'}</code>)
+        </li>
       </ul>
+
+      <h2 id="middleware">Middleware</h2>
+      <CodeBlock
+        language="ts"
+        code={`type MiddlewareDecision =
+  | { type: 'next'; headers?: Record<string, string> }
+  | { type: 'redirect'; to: string; status: 301|302|303|307|308 }
+  | { type: 'rewrite'; to: string }
+  | { type: 'respond'; response: Response };
+
+type Middleware = (ctx: {
+  pathname: string;
+  searchParams: URLSearchParams;
+  url?: URL;
+  request?: Request;
+  state: Record<string, unknown>;
+}) => MiddlewareDecision | void | Promise<MiddlewareDecision | void>;
+
+defineMiddleware(fn: Middleware): Middleware;
+next(headers?): MiddlewareDecision;
+redirect(to, status = 307): MiddlewareDecision;
+rewrite(to): MiddlewareDecision;
+respond(response): MiddlewareDecision;
+
+// matcher: '*' = one segment, '**' = any depth; first terminal decision wins
+runMiddleware(
+  chain: Array<Middleware | { matcher?: string | string[]; handler: Middleware }>,
+  init: { pathname: string; searchParams?; url?; request?; state? },
+): Promise<MiddlewareDecision>;`}
+      />
+
+      <h2 id="actions">Server actions (mutations)</h2>
+      <CodeBlock
+        language="ts"
+        code={`// reads use defineLoader / useLoaderData from @jorvel/ssr; actions are the write side
+defineAction<I, O>(fn: (input: I, ctx?: { request?; signal? }) => O | Promise<O>): Action<I, O>;
+
+// pending/error/data state machine; concurrent submits are last-wins
+useAction<I, O>(action): { data: O | null; error: unknown; pending: boolean; submit(i: I): Promise<O>; reset(): void };
+
+// binds a FormData action to <form onSubmit>; progressive-enhancement friendly
+useFormAction<O>(action): { onSubmit(e); submit(fd: FormData): Promise<O>; data; error; pending; reset };`}
+      />
 
       <h2 id="typed">Typed routes</h2>
       <CodeBlock
@@ -194,7 +242,10 @@ clientBoundary<T>(component: T): T;     // marker for future tooling`}
   name: string;
   entryUrl: string;
   integrity?: string;             // SRI hash
+}, opts?: {
   allowedOrigins?: string[];      // verified before fetch
+  requireIntegrity?: boolean;     // fail closed when no SRI hash is present
+  crossOrigin?: 'anonymous' | 'use-credentials' | 'none';
 }): Promise<void>;
 
 loadRemoteModule<T = unknown>(
@@ -279,6 +330,48 @@ fetchHealth(url: string, opts?: { timeoutMs?: number }): Promise<HealthBody>;`}
   loading: boolean;
   refresh(): Promise<void>;
 };`}
+      />
+
+      <h2 id="revalidation">Cache tags &amp; revalidation</h2>
+      <CodeBlock
+        language="ts"
+        code={`// tag a read: useRemoteData({ key, fetcher, tags: ['posts', 'post:42'] })
+revalidateTag(tag: string): void;          // purge every entry with this tag + signal re-render
+revalidatePath(path: string): void;        // sugar: revalidateTag(path)
+invalidateRemoteData(key: string): void;   // purge one key
+clearRemoteDataCache(): void;              // purge everything
+prefetchRemoteData<T>(key, fetcher, ttl?, tags?): Promise<T>;
+useRevalidationVersion(): number;          // subscribe a component to revalidation (re-renders on purge)`}
+      />
+
+      <h2 id="query">Query cache (useQuery / useMutation)</h2>
+      <CodeBlock
+        language="ts"
+        code={`class QueryClient {
+  constructor(opts?: { staleTime?: number; now?: () => number });
+  fetchQuery<T>(key, queryFn): Promise<T>;   // dedupes in-flight
+  setQueryData<T>(key, updater): void;        // optimistic / hydration
+  invalidate(prefix | (key) => boolean): void;
+  isStale(key, staleTime?): boolean;
+  getEntry<T>(key); clear();
+}
+QueryClientProvider({ client?, children }); useQueryClient(): QueryClient;
+
+useQuery<T>({ queryKey, queryFn, staleTime?, enabled? }):
+  { data; error; status; isLoading; isFetching; isStale; refetch };
+
+useMutation<I, O>({ mutationFn, onSuccess?, onError? }):
+  { mutate; mutateAsync; data; error; status; isPending; reset };`}
+      />
+
+      <h2 id="optimistic">useOptimistic</h2>
+      <CodeBlock
+        language="ts"
+        code={`// React-18-compatible; same shape as React 19's built-in
+useOptimistic<State, Action = State>(
+  state: State,
+  updateFn: (current: State, optimisticValue: Action) => State,
+): [optimisticState: State, addOptimistic: (action: Action) => void];`}
       />
 
       <h2 id="weighted">Weighted remotes</h2>

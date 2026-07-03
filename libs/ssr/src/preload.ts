@@ -23,13 +23,30 @@ function linkTag(l: PreloadLink): string {
   return `<link ${attrs.join(' ')}>`;
 }
 
+export interface RemoteEntryPreloadOptions {
+  /**
+   * Module format of the remote container.
+   * - 'classic' (default) — `<link rel="preload" as="script">`. Matches the
+   *   default Module Federation container, which is a classic global script.
+   * - 'esm' — `<link rel="modulepreload">`. Use only when remotes ship as ESM
+   *   containers (Module Federation 2 with `library.type: 'module'`).
+   */
+  format?: 'classic' | 'esm';
+}
+
 export function remoteEntryPreloads(
   remotes: Array<{ name: string; entryUrl: string; integrity?: string }>,
+  opts: RemoteEntryPreloadOptions = {},
 ): PreloadLink[] {
-  return remotes.map((r) => ({
-    href: r.entryUrl,
-    rel: 'modulepreload',
-    crossorigin: 'anonymous',
-    ...(r.integrity ? { integrity: r.integrity } : {}),
-  }));
+  const isEsm = opts.format === 'esm';
+  return remotes.map((r) => {
+    const link: PreloadLink = {
+      href: r.entryUrl,
+      rel: isEsm ? 'modulepreload' : 'preload',
+      crossorigin: 'anonymous',
+    };
+    if (!isEsm) link.as = 'script';
+    if (r.integrity) link.integrity = r.integrity;
+    return link;
+  });
 }

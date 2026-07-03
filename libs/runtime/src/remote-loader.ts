@@ -1,4 +1,5 @@
 import { emitRemoteLoad } from './telemetry.js';
+import { devtoolsRecordRemote, devtoolsRecordTiming } from './devtools.js';
 
 export type FederationRemote = {
   name: string;
@@ -32,6 +33,14 @@ export type LoadRemoteEntryOptions = {
    * cross-origin remote, and for SRI to work with non-CORS-default servers.
    */
   crossOrigin?: 'anonymous' | 'use-credentials' | 'none';
+  /**
+   * Fail closed when a remote has no `integrity` hash. With this on, a remote
+   * that ships without an SRI hash is refused BEFORE any `<script>` is injected
+   * — so a compromised/typo'd entryUrl can't run unverified code. Pair with a
+   * build-time SRI manifest (`@jorvel/security` `computeSriForManifest`) that
+   * stamps `remote.integrity`. Default: false.
+   */
+  requireIntegrity?: boolean;
 };
 
 export type RemoteEntryCacheKey = {
@@ -105,6 +114,18 @@ function scriptId(remoteName: string) {
   return `jorvel-remote-${remoteName}`;
 }
 
+/**
+ * Tracks the entryUrl each loaded container global was registered from, so a
+ * later request for a DIFFERENT url under the same name (blue-green promote,
+ * weighted canary re-pick, resilience fallback) can tear the old container down
+ * and load the new one instead of silently reusing the stale global.
+ */
+function loadedRemoteUrls(g: Record<string, unknown>): Record<string, string> {
+  const KEY = '__JORVEL_REMOTE_URLS__';
+  if (!g[KEY]) g[KEY] = {};
+  return g[KEY] as Record<string, string>;
+}
+
 function isBrowserEnv() {
   return typeof document !== 'undefined' && typeof window !== 'undefined';
 }
@@ -167,6 +188,27 @@ export async function loadRemoteEntry(
     throw err;
   }
 
+  // SRI policy — checked before any DOM work or dedupe so a misconfig fails
+  // loud and identically every call.
+  if (options?.requireIntegrity && !remote.integrity) {
+    const err = new Error(
+      `[jorvel/runtime] loadRemoteEntry: requireIntegrity is on but "${remote.name}" has no integrity hash (${remote.entryUrl}). ` +
+        `Stamp remote.integrity (e.g. via @jorvel/security computeSriForManifest) or disable requireIntegrity.`,
+    );
+    emitRemoteLoad({ remote: remote.name, url: remote.entryUrl, phase: 'error', durationMs: 0, error: err });
+    throw err;
+  }
+  // SRI without CORS never enforces — the browser skips integrity checks on
+  // no-CORS scripts and runs the bytes anyway. Refuse the silent downgrade.
+  if (remote.integrity && options?.crossOrigin === 'none') {
+    const err = new Error(
+      `[jorvel/runtime] loadRemoteEntry: "${remote.name}" sets integrity but crossOrigin:'none' — SRI is NOT enforced without CORS. ` +
+        `Use crossOrigin:'anonymous' (default) or drop the integrity hash.`,
+    );
+    emitRemoteLoad({ remote: remote.name, url: remote.entryUrl, phase: 'error', durationMs: 0, error: err });
+    throw err;
+  }
+
   const key = flightKey(remote);
   const existing = inFlight.get(key);
   if (existing) return existing;
@@ -188,6 +230,22 @@ export async function loadRemoteEntry(
         : typeof options?.cache === 'object'
           ? options.cache
           : null;
+
+    const urls = loadedRemoteUrls(g);
+
+    // URL-change teardown: if WE loaded this name from a DIFFERENT entryUrl,
+    // drop the stale container + its <script> so the requested entry can register
+    // fresh. Without this the short-circuits below would reuse the old container
+    // and the URL switch (blue-green/canary/fallback) would no-op.
+    //
+    // Only act when we have a RECORDED url that differs. A container present with
+    // no recorded url (a test mock, or an SSR-injected/3rd-party global) is left
+    // alone — we don't know its url, so we must not assume it's stale.
+    if (g[remote.name] && urls[remote.name] !== undefined && urls[remote.name] !== remote.entryUrl) {
+      (globalThis.document?.getElementById(id) as HTMLScriptElement | null)?.remove();
+      delete g[remote.name];
+      delete urls[remote.name];
+    }
 
     if (cache) {
       const cached = cache.get({ name: remote.name, entryUrl: remote.entryUrl });
@@ -226,13 +284,17 @@ export async function loadRemoteEntry(
         return;
       }
       await new Promise<void>((resolve, reject) => {
+        let settled = false;
         const cleanup = () => {
           existingScript.removeEventListener('load', onLoad);
           existingScript.removeEventListener('error', onError);
         };
-        const onLoad = () => {
+        const succeed = () => {
+          if (settled) return;
+          settled = true;
           cleanup();
           existingScript.dataset['jorvelLoaded'] = '1';
+          urls[remote.name] = remote.entryUrl;
           emitRemoteLoad({
             remote: remote.name,
             url: remote.entryUrl,
@@ -241,20 +303,50 @@ export async function loadRemoteEntry(
           });
           resolve();
         };
-        const onError = () => {
+        const fail = (phase: 'error' | 'timeout', err: Error) => {
+          if (settled) return;
+          settled = true;
           cleanup();
-          const err = new Error(`Failed to load remoteEntry: ${remote.entryUrl}`);
+          // Remove the failed/stale script so a later retry creates a fresh one
+          // instead of re-attaching listeners to a node whose load/error event
+          // already fired (which would hang forever).
+          existingScript.remove();
           emitRemoteLoad({
             remote: remote.name,
             url: remote.entryUrl,
-            phase: 'error',
+            phase,
             durationMs: Date.now() - startedAt,
             error: err,
           });
           reject(err);
         };
+        const onLoad = () => {
+          // The script load fired, but the container global may attach a tick
+          // later — poll a short while before declaring success.
+          if (g[remote.name]) return succeed();
+        };
+        const onError = () => fail('error', new Error(`Failed to load remoteEntry: ${remote.entryUrl}`));
         existingScript.addEventListener('load', onLoad, { once: true });
         existingScript.addEventListener('error', onError, { once: true });
+        // Poll for the container global with a timeout. This is the authoritative
+        // signal: it handles the case where the script's `load` already fired
+        // before we attached listeners (SSR-injected tag, duplicate runtime copy),
+        // which the event-only wait could never recover from.
+        void (async () => {
+          const started = Date.now();
+          while (!settled) {
+            if (g[remote.name]) return succeed();
+            if (Date.now() - started >= timeoutMs) {
+              return fail(
+                'timeout',
+                new Error(
+                  `Remote container "${remote.name}" not found after waiting ${timeoutMs}ms for existing <script id="${id}">`,
+                ),
+              );
+            }
+            await sleep(pollMs);
+          }
+        })();
       });
       return;
     }
@@ -280,6 +372,8 @@ export async function loadRemoteEntry(
             while (!g[remote.name] && Date.now() - started < timeoutMs) await sleep(pollMs);
           }
           if (!g[remote.name]) {
+            // Drop the script so a retry starts clean (see onError).
+            script.remove();
             const err = new Error(
               `Remote container "${remote.name}" not found after loading ${remote.entryUrl} (waited ${timeoutMs}ms)`,
             );
@@ -294,13 +388,19 @@ export async function loadRemoteEntry(
             return;
           }
           if (cache) cache.set({ name: remote.name, entryUrl: remote.entryUrl }, { loadedAt: Date.now() });
+          urls[remote.name] = remote.entryUrl;
           script.dataset['jorvelLoaded'] = '1';
+          const dur = Date.now() - startedAt;
           emitRemoteLoad({
             remote: remote.name,
             url: remote.entryUrl,
             phase: 'success',
-            durationMs: Date.now() - startedAt,
+            durationMs: dur,
           });
+          devtoolsRecordRemote(remote.name, remote.entryUrl, {
+            ...(remote.integrity ? { integrity: remote.integrity } : {}),
+          });
+          devtoolsRecordTiming(remote.name, dur);
           resolve();
         })().catch(reject);
       };
@@ -308,6 +408,11 @@ export async function loadRemoteEntry(
       const onError = () => {
         if (settled) return;
         settled = true;
+        // Remove the failed <script> from the DOM. Otherwise a retry finds it via
+        // getElementById, attaches load/error listeners to a node whose error
+        // event already fired, and hangs forever waiting for an event that never
+        // comes again.
+        script.remove();
         const err = new Error(`Failed to load remoteEntry: ${remote.entryUrl}`);
         emitRemoteLoad({
           remote: remote.name,
@@ -405,22 +510,19 @@ export async function loadRemoteModule<TModule = unknown>(
   const withTimeout = async <T>(label: string, timeoutMs: number, fn: () => Promise<T>): Promise<T> => {
     if (timeoutMs <= 0) return fn();
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let timedOut = false;
     try {
       return await Promise.race([
         fn(),
         new Promise<T>((_, reject) => {
           timer = setTimeout(() => {
-            timedOut = true;
             reject(new Error(`${label} timed out after ${timeoutMs}ms`));
           }, timeoutMs);
         }),
       ]);
     } finally {
+      // Promise.race ignores a late settle, so clearing the timer is all that's
+      // needed; the loser of the race is harmlessly dropped.
       if (timer) clearTimeout(timer);
-      // Sentinel-protected: if the timer fired after the inner promise resolved,
-      // we've already returned — nothing to do, but the flag prevents double-reject.
-      void timedOut;
     }
   };
 

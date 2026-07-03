@@ -6,13 +6,13 @@ import fs from 'fs-extra';
 import { scaffoldCommand } from '../src/commands/scaffold.js';
 
 async function run(argv: string[], cwd: string): Promise<void> {
-  // `scaffoldCommand` is the `app` subcommand (commander's `.command('app')`
-  // returns the child, not the parent), so we invoke it directly.
+  // `scaffoldCommand` is the parent; the action lives on the `app` subcommand,
+  // so prefix the argv with `app`.
   scaffoldCommand.exitOverride();
   const prev = process.cwd();
   process.chdir(cwd);
   try {
-    await scaffoldCommand.parseAsync(argv, { from: 'user' });
+    await scaffoldCommand.parseAsync(['app', ...argv], { from: 'user' });
   } finally {
     process.chdir(prev);
   }

@@ -8,6 +8,7 @@ import { getTailwindDefault, loadWorkspaceConfig } from '../config.js';
 
 import { generateCommand } from './generate.js';
 import { federationCommand } from './federation.js';
+import { routesCommand } from './routes.js';
 
 type ScaffoldOpts = {
   dir: string;
@@ -44,11 +45,15 @@ async function writeHostRemoteSmokeTest(workspaceDir: string, hostName: string, 
     [
       "import { describe, it, expect } from 'vitest';",
       "import path from 'node:path';",
+      "import { fileURLToPath } from 'node:url';",
       "import fs from 'fs-extra';",
+      '',
+      '// Resolve apps/ relative to this test file so the suite survives a repo',
+      '// clone/move/CI (no absolute paths baked in at scaffold time).',
+      "const appsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'apps');",
       '',
       "describe('microfrontend scaffold smoke', () => {",
       "  it('host and remotes exist with jorvel.app.json', async () => {",
-      `    const appsDir = path.join(${JSON.stringify(workspaceDir)}, 'apps');`,
       `    const apps = ${JSON.stringify([hostName, ...remoteNames])};`,
       '    for (const name of apps) {',
       '      const dir = path.join(appsDir, name);',
@@ -60,7 +65,6 @@ async function writeHostRemoteSmokeTest(workspaceDir: string, hostName: string, 
       '  });',
       '',
       "  it('federation config is generated for host and remotes', async () => {",
-      `    const appsDir = path.join(${JSON.stringify(workspaceDir)}, 'apps');`,
       `    const apps = ${JSON.stringify([hostName, ...remoteNames])};`,
       '    for (const name of apps) {',
       '      const dir = path.join(appsDir, name);',
@@ -86,9 +90,7 @@ async function writeHostRemoteSmokeTest(workspaceDir: string, hostName: string, 
   }
 }
 
-export const scaffoldCommand = new Command('scaffold')
-  .description('Guided scaffolding for complete microfrontend applications')
-  .command('app')
+const scaffoldAppCommand = new Command('app')
   .description('Create a host + one or more remotes with optional Tailwind and a smoke test')
   .option('-d, --dir <path>', 'Workspace root directory', process.cwd())
   .option('-y, --yes', 'Skip prompts and use defaults', false)
@@ -156,6 +158,10 @@ export const scaffoldCommand = new Command('scaffold')
       await runSubcommand(federationCommand, ['--dir', workspaceDir], workspaceDir);
     }
 
+    if (selected.includes('routes')) {
+      await runSubcommand(routesCommand, ['--dir', workspaceDir], workspaceDir);
+    }
+
     if (selected.includes('smoke')) {
       await writeHostRemoteSmokeTest(workspaceDir, hostName, remoteNames);
     }
@@ -166,3 +172,7 @@ export const scaffoldCommand = new Command('scaffold')
     console.log(kleur.gray(`  pnpm -C ${workspaceDir} dev`));
     console.log(kleur.gray(`  pnpm -C ${workspaceDir} test:smoke`));
   });
+
+export const scaffoldCommand = new Command('scaffold')
+  .description('Guided scaffolding for complete microfrontend applications')
+  .addCommand(scaffoldAppCommand);

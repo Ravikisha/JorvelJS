@@ -10,6 +10,7 @@
 
 import React from 'react';
 import { createRouter, dispatchJorvelNavigate, type Router, type RouterOptions } from './router.js';
+import { getServerRouter } from './server-router.js';
 import { resolveRoute, type RouteTarget, type ResolvedRoute } from './routes.js';
 import { ErrorBoundary } from './error-boundary.js';
 import { prefetchRoute } from './prefetch.js';
@@ -22,6 +23,10 @@ const ROUTER_KEY = '__JORVEL_ROUTER_SINGLETON__';
 type GlobalWithRouter = typeof globalThis & { [ROUTER_KEY]?: Router };
 
 export function getRouter(opts?: RouterOptions): Router {
+  // SSR: never construct a browser router (createRouter asserts `window` and
+  // would throw, taking down usePathname/RemoteOutlet/NestedRouter/useSearchParams
+  // server-side). Use the request-scoped server router instead.
+  if (typeof window === 'undefined') return getServerRouter();
   const g = globalThis as GlobalWithRouter;
   if (!g[ROUTER_KEY]) g[ROUTER_KEY] = createRouter(opts);
   return g[ROUTER_KEY];
@@ -40,12 +45,12 @@ export function useRouter(): Router {
   return getRouter();
 }
 
-const isBrowser = typeof window !== 'undefined';
-
 export function usePathname(): string {
   const router = getRouter();
   const [pathname, setPathname] = React.useState(() => {
-    if (!isBrowser) return '/';
+    // router.getPath() is safe on both the browser router and the SSR server
+    // router, so the SSR initial value matches the rendered request path
+    // (avoids a hydration mismatch when the path isn't "/").
     try {
       return new URL(router.getPath(), 'http://jorvel.local').pathname;
     } catch {
@@ -162,6 +167,18 @@ export function NavLink({
       className={className}
       style={{ ...dynamicStyle, ...(style ?? {}), ...(isActive ? (activeStyle ?? {}) : {}) }}
       onClick={(e) => {
+        // Let the browser handle "open in new tab/window" and non-primary
+        // clicks natively — only hijack a plain left-click for SPA navigation.
+        if (
+          e.defaultPrevented ||
+          e.button !== 0 ||
+          e.metaKey ||
+          e.ctrlKey ||
+          e.shiftKey ||
+          e.altKey
+        ) {
+          return;
+        }
         e.preventDefault();
         dispatchJorvelNavigate({ to: cleanTo || '/' });
       }}

@@ -51,25 +51,33 @@ export function cacheControl(opts: CacheControlOptions): string {
  * Returned as `W/"<hex>-<len>"`.
  */
 export function buildWeakEtag(body: string): string {
-  // FNV-1a 64-bit using two 32-bit halves to avoid BigInt cost in hot paths.
+  // FNV-1a 64-bit over two 32-bit halves (avoids BigInt in this hot path).
+  //
+  // The prime 0x100000001B3 splits across 32-bit words as high=0x100, low=0x1B3.
+  // So {hi,lo} * prime (mod 2^64) is:
+  //   lo' = (lo * 0x1B3) mod 2^32
+  //   hi' = (hi * 0x1B3 + lo * 0x100 + carry(lo * 0x1B3)) mod 2^32
+  // The previous implementation computed the carry from an already-32-bit-
+  // truncated product (always 0) and dropped the `lo * 0x100` term entirely,
+  // leaving two weakly-coupled 32-bit streams → far higher collision odds and
+  // false 304s. lo * 0x1B3 ≤ 2^32·435 < 2^53, so these products are exact in a
+  // double.
   let hi = 0xcbf2_9ce4 >>> 0;
   let lo = 0x8422_2325 >>> 0;
+  const mulPrime = () => {
+    const oldLo = lo;
+    const loProd = oldLo * 0x1b3;
+    const carry = Math.floor(loProd / 0x1_0000_0000);
+    lo = loProd >>> 0;
+    hi = (hi * 0x1b3 + oldLo * 0x100 + carry) >>> 0;
+  };
   for (let i = 0; i < body.length; i++) {
     const c = body.charCodeAt(i);
-    lo ^= c & 0xff;
-    // FNV prime 0x100000001b3 ≈ multiplied via 32-bit pieces.
-    const aLo = Math.imul(lo, 0x1b3) >>> 0;
-    const aHi = Math.imul(hi, 0x1b3) >>> 0;
-    const carry = Math.floor((Math.imul(lo, 0x1b3) >>> 0) / 0x100000000) | 0;
-    lo = aLo;
-    hi = (aHi + carry) >>> 0;
+    lo = (lo ^ (c & 0xff)) >>> 0;
+    mulPrime();
     if (c > 0xff) {
-      lo ^= (c >>> 8) & 0xff;
-      const bLo = Math.imul(lo, 0x1b3) >>> 0;
-      const bHi = Math.imul(hi, 0x1b3) >>> 0;
-      const carry2 = Math.floor((Math.imul(lo, 0x1b3) >>> 0) / 0x100000000) | 0;
-      lo = bLo;
-      hi = (bHi + carry2) >>> 0;
+      lo = (lo ^ ((c >>> 8) & 0xff)) >>> 0;
+      mulPrime();
     }
   }
   const hex = hi.toString(16).padStart(8, '0') + lo.toString(16).padStart(8, '0');

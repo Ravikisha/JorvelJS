@@ -11,13 +11,14 @@ const exampleDir = join(repoRoot, 'examples', 'basic') + '/';
 const cliDist = join(repoRoot, 'packages', 'cli', 'dist', 'index.js');
 
 function spawnChild(cmd, args, cwd, env) {
-  // On Windows, pnpm is a .cmd shim — Node's spawn cannot resolve it without shell.
-  // Rather than turning on shell + risking arg-quoting bugs, swap pnpm → pnpm.cmd directly.
-  const resolvedCmd = isWindows && cmd === 'pnpm' ? 'pnpm.cmd' : cmd;
-  const child = spawn(resolvedCmd, args, {
+  // On Windows, pnpm is a .cmd shim. Spawning `pnpm.cmd` with shell:false now
+  // throws EINVAL on Node >=20.12 (CVE-2024-27980), so we run through the shell
+  // on Windows instead (args here are simple flags/paths without spaces in this
+  // repo, so quoting is not a concern).
+  const child = spawn(cmd, args, {
     cwd,
     stdio: 'inherit',
-    shell: false,
+    shell: isWindows,
     env: { ...process.env, ...(env || {}) },
   });
   return child;

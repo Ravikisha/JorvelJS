@@ -35,9 +35,24 @@ export interface PersistOptions<T> {
   onError?: (err: unknown, phase: 'read' | 'write') => void;
 }
 
-interface Envelope<T> {
+/**
+ * On-disk envelope. `state` is the value run through the (possibly custom)
+ * serializer — a STRING, not the raw value — so non-JSON serializers
+ * (superjson, Map/Date codecs) round-trip correctly. The envelope itself is
+ * always plain JSON so the version can be read without invoking deserialize.
+ */
+interface Envelope {
   v: number;
-  state: T;
+  state: string;
+}
+
+function isEnvelope(v: unknown): v is Envelope {
+  return (
+    !!v &&
+    typeof v === 'object' &&
+    typeof (v as { v?: unknown }).v === 'number' &&
+    typeof (v as { state?: unknown }).state === 'string'
+  );
 }
 
 function getDefaultStorage(): PersistStorage | undefined {
@@ -67,7 +82,102 @@ function attach<T>(p: Persistable<T>, opts: PersistOptions<T>): () => void {
   const debounceMs = opts.debounceMs ?? 100;
   const version = opts.version ?? 0;
 
+  // ── Write on change ───────────────────────────────────────────────────────
+  let pending = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  // Suppresses the write that the store's own hydration (p.apply) would
+  // otherwise trigger, and lets the async read detect a genuine user change.
+  let hydrating = false;
+  let userChanged = false;
+
+  const flush = (): void => {
+    pending = false;
+    timer = null;
+    try {
+      const wrapped = JSON.stringify({ v: version, state: serialize(p.read()) } satisfies Envelope);
+      const result = storage.setItem(opts.key, wrapped);
+      if (result instanceof Promise) result.catch((err) => onError(err, 'write'));
+    } catch (err) {
+      onError(err, 'write');
+    }
+  };
+
+  const scheduleWrite = (): void => {
+    if (debounceMs <= 0) {
+      flush();
+      return;
+    }
+    if (pending) return;
+    pending = true;
+    timer = setTimeout(flush, debounceMs);
+  };
+
+  const unsub = p.subscribe(() => {
+    // Ignore notifications caused by our own hydration apply — re-persisting the
+    // value we just read is pointless churn, and it must not flip userChanged.
+    if (hydrating) return;
+    userChanged = true;
+    scheduleWrite();
+  });
+
+  const applyValue = (value: T): void => {
+    hydrating = true;
+    try {
+      p.apply(value);
+    } finally {
+      hydrating = false;
+    }
+  };
+
   // ── Initial read (handles both sync and async storage) ────────────────────
+  const applyRead = (raw: string | null, isAsync: boolean): void => {
+    if (raw === null) return;
+    // If the user already mutated state before an async getItem resolved, the
+    // persisted (stale) value must not clobber the newer in-memory state.
+    if (isAsync && userChanged) return;
+    try {
+      let parsed: unknown;
+      let hasValue = true;
+      let migrated = false;
+      try {
+        const env: unknown = JSON.parse(raw);
+        if (isEnvelope(env)) {
+          if (env.v === version) {
+            parsed = deserialize(env.state);
+          } else if (env.v < version && opts.migrate) {
+            // migrate receives the prior value (deserialized) + its version.
+            parsed = opts.migrate(deserialize(env.state), env.v);
+            migrated = true;
+          } else if (env.v < version) {
+            // Older payload, no migrate provided → drop rather than apply a
+            // shape the current code doesn't understand.
+            hasValue = false;
+          } else {
+            // env.v > version: written by NEWER code (e.g. after a rollback).
+            // Don't trust a future shape — surface it and drop.
+            onError(
+              new Error(`persisted version ${env.v} is newer than ${version}; ignoring`),
+              'read',
+            );
+            hasValue = false;
+          }
+        } else {
+          // Non-enveloped / legacy payload — deserialize the whole string.
+          parsed = deserialize(raw);
+        }
+      } catch {
+        parsed = deserialize(raw);
+      }
+      if (!hasValue) return;
+      applyValue(parsed as T);
+      // Persist the migrated value at the current version so a crash before the
+      // next change doesn't force the migration to run again.
+      if (migrated) flush();
+    } catch (err) {
+      onError(err, 'read');
+    }
+  };
+
   const readResult = (() => {
     try {
       return storage.getItem(opts.key);
@@ -77,65 +187,21 @@ function attach<T>(p: Persistable<T>, opts: PersistOptions<T>): () => void {
     }
   })();
 
-  const applyRead = (raw: string | null): void => {
-    if (raw === null) return;
-    try {
-      let parsed: unknown;
-      try {
-        const env = JSON.parse(raw) as Envelope<T> | T;
-        if (env && typeof env === 'object' && 'v' in (env as object) && 'state' in (env as object)) {
-          const e = env as Envelope<T>;
-          if (e.v === version) parsed = e.state;
-          else if (opts.migrate) parsed = opts.migrate(e.state, e.v);
-          else return;
-        } else {
-          parsed = deserialize(raw);
-        }
-      } catch {
-        parsed = deserialize(raw);
-      }
-      p.apply(parsed as T);
-    } catch (err) {
-      onError(err, 'read');
-    }
-  };
-
   if (readResult instanceof Promise) {
-    readResult.then(applyRead).catch((err) => onError(err, 'read'));
+    readResult.then((r) => applyRead(r, true)).catch((err) => onError(err, 'read'));
   } else {
-    applyRead(readResult);
+    applyRead(readResult, false);
   }
-
-  // ── Write on change ───────────────────────────────────────────────────────
-  let pending = false;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const flush = (): void => {
-    pending = false;
-    timer = null;
-    try {
-      const env: Envelope<T> = { v: version, state: p.read() };
-      const raw = serialize(env.state);
-      const wrapped = JSON.stringify({ v: version, state: JSON.parse(raw) });
-      const result = storage.setItem(opts.key, wrapped);
-      if (result instanceof Promise) result.catch((err) => onError(err, 'write'));
-    } catch (err) {
-      onError(err, 'write');
-    }
-  };
-
-  const unsub = p.subscribe(() => {
-    if (debounceMs <= 0) {
-      flush();
-      return;
-    }
-    if (pending) return;
-    pending = true;
-    timer = setTimeout(flush, debounceMs);
-  });
 
   return () => {
     unsub();
-    if (timer) clearTimeout(timer);
+    // Flush a pending debounced write so unmount/teardown doesn't lose the last
+    // change.
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+      if (pending) flush();
+    }
   };
 }
 

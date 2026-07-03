@@ -26,8 +26,12 @@ const NOISE = new Set(['node_modules', 'dist', 'build', '.cache', '.next', 'cove
  * Replaces the duplicated discovery loops in `dev.ts`, `build.ts`,
  * `federation.ts`, `routes.ts`, `ci.ts`, `typecheck.ts`.
  */
-export async function discoverApps(workspaceDir: string): Promise<DiscoveredApp[]> {
-  const appsDir = path.join(workspaceDir, 'apps');
+export async function discoverApps(
+  workspaceDir: string,
+  /** Apps directory relative to the workspace root. Defaults to `apps`; pass `cfg.appsDir` to honor a custom layout. */
+  appsSubdir = 'apps',
+): Promise<DiscoveredApp[]> {
+  const appsDir = path.join(workspaceDir, appsSubdir);
   if (!(await fs.pathExists(appsDir))) return [];
 
   const entries = await fs.readdir(appsDir);
@@ -61,8 +65,8 @@ export async function discoverApps(workspaceDir: string): Promise<DiscoveredApp[
 }
 
 /** Find the host app, if any. Throws if multiple hosts are present. */
-export async function findHostApp(workspaceDir: string): Promise<DiscoveredApp | null> {
-  const apps = await discoverApps(workspaceDir);
+export async function findHostApp(workspaceDir: string, appsSubdir = 'apps'): Promise<DiscoveredApp | null> {
+  const apps = await discoverApps(workspaceDir, appsSubdir);
   const hosts = apps.filter((a) => a.meta.type === 'host');
   if (hosts.length === 0) return null;
   if (hosts.length > 1) {
@@ -73,7 +77,7 @@ export async function findHostApp(workspaceDir: string): Promise<DiscoveredApp |
   return hosts[0]!;
 }
 
-export async function findRemoteApps(workspaceDir: string): Promise<DiscoveredApp[]> {
-  const apps = await discoverApps(workspaceDir);
+export async function findRemoteApps(workspaceDir: string, appsSubdir = 'apps'): Promise<DiscoveredApp[]> {
+  const apps = await discoverApps(workspaceDir, appsSubdir);
   return apps.filter((a) => a.meta.type === 'remote');
 }

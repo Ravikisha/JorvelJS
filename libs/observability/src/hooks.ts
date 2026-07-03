@@ -32,11 +32,26 @@ interface Registry {
   remoteLoads: Set<RemoteLoadHandler>;
 }
 
-const reg: Registry = {
-  errors: new Set(),
-  metrics: new Set(),
-  remoteLoads: new Set(),
-};
+// Anchor the registry on globalThis via a well-known Symbol. In a module-
+// federation app the host and each remote may bundle their OWN copy of
+// @jorvel/observability; a module-local registry would mean a handler registered
+// in one copy never sees events reported through another. Sharing one registry
+// across copies makes observability work across the MF boundary.
+const REGISTRY_KEY = Symbol.for('jorvel.observability.hooks');
+
+function getRegistry(): Registry {
+  const g = globalThis as typeof globalThis & { [REGISTRY_KEY]?: Registry };
+  if (!g[REGISTRY_KEY]) {
+    g[REGISTRY_KEY] = {
+      errors: new Set(),
+      metrics: new Set(),
+      remoteLoads: new Set(),
+    };
+  }
+  return g[REGISTRY_KEY];
+}
+
+const reg: Registry = getRegistry();
 
 export function onError(fn: ErrorHandler): () => void {
   reg.errors.add(fn);

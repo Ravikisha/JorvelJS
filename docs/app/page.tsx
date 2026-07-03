@@ -3,6 +3,18 @@ import { ButtonLink } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CodeBlock } from '@/components/site/code-block';
+import { Spotlight } from '@/components/aceternity/spotlight';
+import { InfiniteMovingCards } from '@/components/aceternity/infinite-moving-cards';
+import { BentoGrid, BentoGridItem } from '@/components/aceternity/bento-grid';
+import { TextGenerateEffect } from '@/components/aceternity/text-generate-effect';
+import { AnimatedGridPattern } from '@/components/magicui/animated-grid-pattern';
+import { Particles } from '@/components/magicui/particles';
+import { Marquee } from '@/components/magicui/marquee';
+import { SparklesText } from '@/components/magicui/sparkles-text';
+import { AuroraText } from '@/components/magicui/aurora-text';
+import { MagicCard } from '@/components/magicui/magic-card';
+import { ShimmerButton } from '@/components/magicui/shimmer-button';
+import { Terminal, TypingAnimation, AnimatedSpan } from '@/components/magicui/terminal';
 import {
   ArrowRight,
   BoltIcon,
@@ -41,43 +53,49 @@ export default function Home() {
 /* ── Hero ──────────────────────────────────────────────────────────────── */
 
 function Hero() {
-  const cliCmd = `npx jorvel@latest init my-app`;
-  const exampleCode = `// apps/shell/src/main.tsx
-import { createRouter, RemoteOutlet } from '@jorvel/runtime';
-import { remotes } from './jorvel.routes.host';
-
-const router = createRouter({
-  remotes,
-  guards: [requireAuth],
-});
-
-export default function App() {
-  return <RemoteOutlet router={router} />;
-}`;
-
   return (
     <section className="relative overflow-hidden border-b border-border">
-      <div className="bg-grid pointer-events-none absolute inset-0 opacity-60" aria-hidden />
-      <div className="glow-orb -top-20 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2" aria-hidden />
+      <Spotlight />
+      <AnimatedGridPattern
+        numSquares={32}
+        maxOpacity={0.08}
+        duration={3}
+        className="[mask-image:radial-gradient(700px_circle_at_center,white,transparent)] inset-x-0 inset-y-[-30%] h-[200%] skew-y-12"
+      />
+      <Particles
+        className="absolute inset-0"
+        quantity={70}
+        ease={80}
+        color="#a3e635"
+        refresh
+      />
       <div className="relative mx-auto w-full max-w-7xl px-4 pb-20 pt-20 sm:px-6 md:pb-28 md:pt-28">
         <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_1fr]">
           <div className="animate-fade-up">
             <Badge variant="accent" className="mb-5">
-              <SparkleIcon className="h-3 w-3" /> v0.2.0 — public beta
+              <SparkleIcon className="h-3 w-3" />{' '}
+              <SparklesText text="v0.2.0 — public beta" sparklesCount={4} />
             </Badge>
             <h1 className="text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
               The micro-frontend framework{' '}
-              <span className="gradient-text">production teams reach for.</span>
+              <AuroraText className="font-bold">
+                production teams reach for.
+              </AuroraText>
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              JORVEL gives you Next.js-level DX on top of Rspack Module Federation. Zero-config
-              workspaces, typed federation contracts, file-based routing, SSR &amp; static export,
-              edge adapters, and a CLI that just works.
-            </p>
+            <div className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              <TextGenerateEffect
+                words="JORVEL gives you Next.js-level DX on top of Rspack Module Federation. Zero-config workspaces, typed federation contracts, file-based routing, SSR and static export, edge adapters, and a CLI that just works."
+              />
+            </div>
             <div className="mt-9 flex flex-wrap gap-3">
-              <ButtonLink href="/docs/getting-started" variant="gradient" size="lg">
-                Get started <ArrowRight className="h-4 w-4" />
-              </ButtonLink>
+              <Link href="/docs/getting-started">
+                <ShimmerButton
+                  background="linear-gradient(135deg, hsl(244 78% 60%), hsl(280 84% 60%))"
+                  className="text-sm font-semibold"
+                >
+                  Get started <ArrowRight className="ml-2 inline h-4 w-4" />
+                </ShimmerButton>
+              </Link>
               <ButtonLink href="/docs/concepts" variant="outline" size="lg">
                 Read the concepts
               </ButtonLink>
@@ -85,12 +103,26 @@ export default function App() {
                 <GitHubIcon /> Star on GitHub
               </ButtonLink>
             </div>
-            <div className="mt-7">
-              <CodeBlock code={cliCmd} language="bash" className="max-w-md" />
+            <div className="mt-7 max-w-md">
+              <Terminal>
+                <TypingAnimation>&gt; pnpm dlx jorvel@latest init my-app</TypingAnimation>
+                <AnimatedSpan delay={1500} className="text-green-500">
+                  ✔ Workspace ready: ./my-app
+                </AnimatedSpan>
+                <AnimatedSpan delay={1800} className="text-muted-foreground">
+                  ↪ apps/, libs/, .github/, jorvel.config.ts
+                </AnimatedSpan>
+                <AnimatedSpan delay={2100} className="text-muted-foreground">
+                  ↪ Initialized git repository (main).
+                </AnimatedSpan>
+                <AnimatedSpan delay={2400} className="text-cyan-400">
+                  $ cd my-app &amp;&amp; pnpm dev:proxy
+                </AnimatedSpan>
+              </Terminal>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> 14 packages, MIT-licensed
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> 18 packages, MIT-licensed
               </span>
               <span className="inline-flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Linux · macOS · Windows · Node 20+
@@ -106,21 +138,38 @@ export default function App() {
               aria-hidden
               className="absolute -inset-6 rounded-3xl bg-[linear-gradient(135deg,hsl(var(--gradient-from)/0.25),hsl(var(--gradient-to)/0.25))] blur-2xl"
             />
-            <div className="relative">
-              <CodeBlock code={exampleCode} filename="apps/shell/src/main.tsx" language="tsx" />
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <MiniCard
-                  icon={<BoltIcon />}
-                  title="Instant dev server"
-                  body="One command. Host + remotes. Same origin."
+            <MagicCard className="relative p-1" gradientFrom="#a3e635" gradientTo="#22d3ee">
+              <div className="rounded-xl p-4">
+                <CodeBlock
+                  code={`// apps/shell/src/main.tsx
+import { createRouter, RemoteOutlet } from '@jorvel/runtime';
+import { remotes } from './jorvel.routes.host';
+
+const router = createRouter({
+  remotes,
+  guards: [requireAuth],
+});
+
+export default function App() {
+  return <RemoteOutlet router={router} />;
+}`}
+                  filename="apps/shell/src/main.tsx"
+                  language="tsx"
                 />
-                <MiniCard
-                  icon={<ShieldIcon />}
-                  title="Secure by default"
-                  body="CSP, SRI, allowlist. Edge-runtime safe."
-                />
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <MiniCard
+                    icon={<BoltIcon />}
+                    title="Instant dev server"
+                    body="One command. Host + remotes. Same origin."
+                  />
+                  <MiniCard
+                    icon={<ShieldIcon />}
+                    title="Secure by default"
+                    body="CSP, SRI, allowlist. Edge-runtime safe."
+                  />
+                </div>
               </div>
-            </div>
+            </MagicCard>
           </div>
         </div>
       </div>
@@ -151,20 +200,36 @@ function MiniCard({
 /* ── Social proof / stack row ───────────────────────────────────────────── */
 
 function SocialProof() {
-  const stack = ['Rspack', 'React 19', 'TypeScript', 'Vite', 'Cloudflare', 'Vercel', 'Web Vitals'];
+  const stack = [
+    'Rspack',
+    'React 19',
+    'TypeScript',
+    'Vitest',
+    'Playwright',
+    'Cloudflare',
+    'Vercel',
+    'Web Vitals',
+    'OpenTelemetry',
+    'Sentry',
+    'pnpm',
+    'Changesets',
+  ];
   return (
     <section className="border-b border-border bg-secondary/30 py-10">
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-6 px-4 sm:px-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           Built on the modern web stack
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-medium text-muted-foreground">
+        <Marquee pauseOnHover className="w-full max-w-full [--duration:30s] [--gap:3rem]">
           {stack.map((s) => (
-            <span key={s} className="opacity-80 transition hover:text-foreground hover:opacity-100">
+            <span
+              key={s}
+              className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
               {s}
             </span>
           ))}
-        </div>
+        </Marquee>
       </div>
     </section>
   );
@@ -234,22 +299,38 @@ function FeatureGrid() {
             already shipped to thousands of users — without locking you out of the bundler.
           </p>
         </div>
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => (
-            <Card key={f.title} interactive>
-              <CardHeader>
-                <span
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary text-accent"
-                  aria-hidden
-                >
-                  {f.icon}
-                </span>
-                <CardTitle className="mt-3 text-base">{f.title}</CardTitle>
-                <CardDescription className="leading-relaxed">{f.body}</CardDescription>
-              </CardHeader>
-            </Card>
+        <BentoGrid className="mt-14 md:auto-rows-[16rem]">
+          {features.map((f, i) => (
+            <BentoGridItem
+              key={f.title}
+              className={[
+                i === 0 && 'md:col-span-2',
+                i === 4 && 'md:col-span-2',
+                'card-sheen',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              header={
+                <div className="relative flex h-32 w-full overflow-hidden rounded-xl bg-gradient-to-br from-secondary via-card to-secondary">
+                  <AnimatedGridPattern
+                    numSquares={8}
+                    maxOpacity={0.3}
+                    duration={2}
+                    className="absolute inset-0 [mask-image:radial-gradient(180px_circle_at_center,white,transparent)]"
+                  />
+                  <span
+                    className="absolute inset-0 m-auto inline-flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-accent shadow-md"
+                    aria-hidden
+                  >
+                    {f.icon}
+                  </span>
+                </div>
+              }
+              title={f.title}
+              description={f.body}
+            />
           ))}
-        </div>
+        </BentoGrid>
       </div>
     </section>
   );
@@ -330,21 +411,17 @@ function FrameworksAndDeploys() {
 /* ── Code showcase ─────────────────────────────────────────────────────── */
 
 function CodeShowcase() {
-  const config = `// jorvel.config.ts
-import type { JorvelWorkspaceConfig } from '@jorvel/types';
-
-const config: JorvelWorkspaceConfig = {
-  name: 'shop',
-  appsDir: 'apps',
-  features: { tailwind: true },
-  federation: {
-    shared: ['react', 'react-dom', '@jorvel/event-bus'],
-    allowlist: ['*.acme.dev', '**.cdn.cloudflare.net'],
-    sri: true,
-  },
-};
-
-export default config;`;
+  const config = `{
+  "$schema": "./node_modules/@jorvel/types/schemas/jorvel.config.json",
+  "name": "shop",
+  "appsDir": "apps",
+  "features": { "tailwind": true },
+  "federation": {
+    "shared": ["react", "react-dom", "@jorvel/event-bus"],
+    "allowlist": ["*.acme.dev", "**.cdn.cloudflare.net"],
+    "sri": true
+  }
+}`;
 
   const remote = `// apps/dashboard/src/pages/users/[id].tsx
 import { useParams } from '@jorvel/runtime';
@@ -375,7 +452,7 @@ export default function UserPage() {
           </p>
         </div>
         <div className="mt-14 grid gap-6 lg:grid-cols-2">
-          <CodeBlock code={config} filename="jorvel.config.ts" language="ts" />
+          <CodeBlock code={config} filename="jorvel.config.json" language="json" />
           <CodeBlock code={remote} filename="apps/dashboard/src/pages/users/[id].tsx" language="tsx" />
         </div>
       </div>
@@ -473,27 +550,16 @@ function Testimonials() {
             Quietly running production in a few teams already.
           </h2>
         </div>
-        <div className="mt-14 grid gap-4 md:grid-cols-3">
-          {quotes.map((q) => (
-            <figure
-              key={q.author}
-              className="flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm"
-            >
-              <blockquote className="text-sm leading-relaxed text-foreground">
-                &ldquo;{q.quote}&rdquo;
-              </blockquote>
-              <figcaption className="mt-4 flex items-center gap-3 border-t border-border pt-4">
-                <span
-                  aria-hidden
-                  className="h-9 w-9 rounded-full bg-[linear-gradient(135deg,hsl(var(--gradient-from)),hsl(var(--gradient-to)))]"
-                />
-                <span>
-                  <span className="block text-sm font-medium text-foreground">{q.author}</span>
-                  <span className="block text-xs text-muted-foreground">{q.role}</span>
-                </span>
-              </figcaption>
-            </figure>
-          ))}
+        <div className="mt-14">
+          <InfiniteMovingCards
+            items={quotes.map((q) => ({
+              quote: q.quote,
+              name: q.author,
+              title: q.role,
+            }))}
+            direction="right"
+            speed="slow"
+          />
         </div>
       </div>
     </section>
@@ -507,10 +573,11 @@ function FinalCta() {
     <section className="relative overflow-hidden py-24">
       <div className="bg-grid pointer-events-none absolute inset-0 opacity-50" aria-hidden />
       <div className="glow-orb left-1/2 top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2" aria-hidden />
+      <Particles className="absolute inset-0" quantity={50} ease={70} color="#22d3ee" />
       <div className="relative mx-auto w-full max-w-3xl px-4 text-center sm:px-6">
         <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
           Ship your first federated app{' '}
-          <span className="gradient-text">in under an hour.</span>
+          <AuroraText className="font-bold">in under an hour.</AuroraText>
         </h2>
         <p className="mt-5 text-lg text-muted-foreground">
           Scaffold a workspace, generate a host + remote, and deploy to the edge. No YAML required.

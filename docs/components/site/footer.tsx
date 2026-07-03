@@ -34,9 +34,12 @@ const COLUMNS: Array<{ title: string; links: Array<{ href: string; label: string
     title: 'Project',
     links: [
       { href: 'https://github.com/Ravikisha/JorvelJS', label: 'GitHub', external: true },
+      { href: 'https://github.com/Ravikisha/JorvelJS/discussions', label: 'Community', external: true },
       { href: 'https://github.com/Ravikisha/JorvelJS/releases', label: 'Releases', external: true },
       { href: 'https://github.com/Ravikisha/JorvelJS/issues', label: 'File an issue', external: true },
-      { href: '/docs/api/runtime', label: 'Changelog' },
+      { href: 'https://github.com/sponsors/Ravikisha', label: 'Sponsor', external: true },
+      { href: '/docs/press', label: 'Press kit' },
+      { href: '/docs/comparison', label: 'vs Next / Remix' },
     ],
   },
 ];

@@ -40,6 +40,10 @@
       "types": "./dist/devtools.d.ts",
       "import": "./dist/devtools.js"
     },
+    "./sync": {
+      "types": "./dist/sync.d.ts",
+      "import": "./dist/sync.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

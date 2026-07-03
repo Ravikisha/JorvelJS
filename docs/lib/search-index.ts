@@ -7,6 +7,91 @@ export interface SearchEntry {
 }
 
 export const SEARCH_INDEX: SearchEntry[] = [
+  // Resources
+  {
+    href: '/docs/comparison',
+    title: 'JORVEL vs Next.js / Remix / SvelteKit / Nx',
+    section: 'Resources',
+    description: 'Where JORVEL fits — federation-first React meta-framework, honest comparison.',
+    keywords: ['comparison', 'vs', 'next.js', 'nextjs', 'remix', 'sveltekit', 'nx', 'versus', 'alternative', 'which framework', 'federation'],
+  },
+  {
+    href: '/docs/migration',
+    title: 'Migration guides',
+    section: 'Resources',
+    description: 'Move from CRA + react-router, or from an existing Module Federation setup.',
+    keywords: ['migration', 'migrate', 'cra', 'create react app', 'react-router', 'webpack', 'module federation', 'codemod', 'jorvel migrate', 'mfjs'],
+  },
+  {
+    href: '/docs/recipes',
+    title: 'Recipes / Cookbook',
+    section: 'Resources',
+    description: 'Lucia/Auth.js, SSO/SAML, kill-switch, mailer/cron, Edge KV, dark mode, tokens, CSS-in-JS.',
+    keywords: ['recipe', 'cookbook', 'lucia', 'auth.js', 'authjs', 'sso', 'saml', 'kill-switch', 'circuit breaker', 'mailer', 'resend', 'cron', 'queue', 'upstash', 'edge kv', 'durable object', 'dark mode', 'theme', 'design tokens', 'css variables', 'css-in-js', 'vanilla-extract', 'panda'],
+  },
+  {
+    href: '/docs/adapters',
+    title: 'Deployment adapters',
+    section: 'Production',
+    description: 'Node, Vercel, Cloudflare, Bun, Deno, Netlify, AWS Lambda / Lambda@Edge adapters.',
+    keywords: ['adapter', 'deploy', 'deployment', 'bun', 'deno', 'netlify', 'aws', 'lambda', 'lambda@edge', 'cloudflare', 'vercel', 'node', 'edge', 'ssr', 'serverless'],
+  },
+  {
+    href: '/docs/roadmap',
+    title: 'Roadmap',
+    section: 'Resources',
+    description: 'Shipped features + what is next; how to influence priorities.',
+    keywords: ['roadmap', 'shipped', 'next', 'plans', 'future', 'rsc', 'ppr'],
+  },
+  {
+    href: '/docs/showcase',
+    title: 'Showcase',
+    section: 'Resources',
+    description: 'Apps and starters built with JORVEL; submit yours.',
+    keywords: ['showcase', 'examples', 'starters', 'gallery', 'built with', 'stackblitz'],
+  },
+  {
+    href: '/docs/why',
+    title: 'Why we built JORVEL',
+    section: 'Resources',
+    description: 'The problem, why runtime Module Federation, what we left out.',
+    keywords: ['why', 'motivation', 'philosophy', 'runtime module federation', 'independent deploy', 'essay'],
+  },
+  {
+    href: '/docs/changelog',
+    title: 'Changelog',
+    section: 'Resources',
+    description: 'Changesets release flow + where to read per-package changelogs.',
+    keywords: ['changelog', 'changesets', 'release', 'versioning', 'semver', 'publish'],
+  },
+  {
+    href: '/docs/press',
+    title: 'Press kit',
+    section: 'Resources',
+    description: 'JORVEL logos, brand colors, and usage guidelines.',
+    keywords: ['press', 'brand', 'logo', 'press kit', 'assets', 'colors', 'media', 'wordmark'],
+  },
+  {
+    href: '/docs/api/i18n',
+    title: '@jorvel/i18n API',
+    section: 'API reference',
+    description: 'formatMessage (ICU), locale routing, detection middleware, RTL, React bindings.',
+    keywords: ['i18n api', 'formatMessage', 'locale', 'icu', 'rtl', 'negotiateLocale', 'localeMiddleware'],
+  },
+  {
+    href: '/docs/api/ui',
+    title: '@jorvel/ui API',
+    section: 'API reference',
+    description: 'Button, Input, Card, Modal, Toast, ThemeProvider.',
+    keywords: ['ui api', 'button', 'input', 'modal', 'toast', 'card', 'theme', 'components'],
+  },
+  {
+    href: '/docs/api/adapters',
+    title: 'Adapter APIs',
+    section: 'API reference',
+    description: 'Entry points for Node, Vercel, Cloudflare, Bun, Deno, Netlify, AWS adapters.',
+    keywords: ['adapter api', 'createNodeHandler', 'createBunHandler', 'createDenoHandler', 'createLambdaHandler', 'createNetlifyHandler'],
+  },
   // Get started
   {
     href: '/docs/getting-started',
@@ -27,7 +112,7 @@ export const SEARCH_INDEX: SearchEntry[] = [
     title: 'CLI reference',
     section: 'Get started',
     description: 'jorvel init, generate, dev, build, federation, routes, ssr, deploy.',
-    keywords: ['cli', 'command', 'init', 'generate', 'dev', 'build', 'deploy', 'federation', 'scaffold', 'analyze', 'diagnose'],
+    keywords: ['cli', 'command', 'init', 'generate', 'dev', 'build', 'deploy', 'federation', 'scaffold', 'analyze', 'diagnose', 'config', 'jorvel.config.json', 'appsdir', 'workspace config'],
   },
 
   // Core
@@ -42,8 +127,50 @@ export const SEARCH_INDEX: SearchEntry[] = [
     href: '/docs/nested-routes',
     title: 'Nested routes',
     section: 'Core',
-    description: 'Layouts, child routes, outlets, route nesting.',
-    keywords: ['nested', 'layout', 'outlet', 'child route', 'parent'],
+    description: 'Layouts, child routes, outlets, per-segment loading.tsx & error.tsx.',
+    keywords: ['nested', 'layout', 'outlet', 'child route', 'parent', 'loading.tsx', 'error.tsx', 'loading', 'error boundary', 'per-segment', 'suspense'],
+  },
+  {
+    href: '/docs/middleware',
+    title: 'Middleware',
+    section: 'Core',
+    description: 'Route middleware for auth gating, redirects, rewrites, A/B — edge, server, client.',
+    keywords: ['middleware', 'middleware.ts', 'auth', 'gate', 'redirect', 'rewrite', 'geo', 'a/b', 'edge', 'guard', 'runMiddleware', 'defineMiddleware'],
+  },
+  {
+    href: '/docs/actions',
+    title: 'Loaders & server actions',
+    section: 'Core',
+    description: 'defineLoader (reads), defineAction (mutations), useAction & useFormAction.',
+    keywords: ['action', 'server action', 'mutation', 'defineAction', 'defineLoader', 'loader', 'useAction', 'useFormAction', 'form', 'useActionState', 'progressive enhancement', 'data fetching', 'revalidate', 'revalidateTag', 'revalidatePath', 'cache tag', 'invalidate', 'optimistic', 'useOptimistic', 'usequery', 'useQuery', 'useMutation', 'QueryClient', 'tanstack', 'react-query', 'swr', 'query cache'],
+  },
+  {
+    href: '/docs/forms',
+    title: 'Forms & CSRF',
+    section: 'Core',
+    description: 'Progressive-enhancement <Form> bound to a server action + signed double-submit CSRF.',
+    keywords: ['form', 'Form', 'csrf', 'double-submit', 'issueCsrfToken', 'verifyCsrf', 'progressive enhancement', 'FormData', 'hidden field', 'mutation', 'security'],
+  },
+  {
+    href: '/docs/database',
+    title: 'Database & backend',
+    section: 'Core',
+    description: 'jorvel add db scaffolds Drizzle ORM (SQLite/libsql) — schema, client, migrations, loader.',
+    keywords: ['database', 'db', 'drizzle', 'orm', 'sqlite', 'better-sqlite3', 'libsql', 'turso', 'jorvel add db', 'migration', 'drizzle-kit', 'schema', 'backend', 'sql'],
+  },
+  {
+    href: '/docs/auth',
+    title: 'Authentication',
+    section: 'Production',
+    description: 'Signed-cookie sessions (getSession/requireUser), middleware gating, OAuth presets.',
+    keywords: ['auth', 'authentication', 'session', 'getSession', 'requireUser', 'SessionManager', 'cookie', 'login', 'oauth', 'pkce', 'github', 'google', 'microsoft', 'jwt', 'middleware gate', 'rbac'],
+  },
+  {
+    href: '/docs/testing',
+    title: 'Testing',
+    section: 'Production',
+    description: 'Vitest + React Testing Library scaffolded in every app, with a real render test.',
+    keywords: ['testing', 'test', 'vitest', 'react testing library', 'rtl', 'jest-dom', 'jsdom', 'render', 'coverage', 'user-event', 'contract test', 'setupFiles'],
   },
   {
     href: '/docs/typed-routes',
@@ -84,15 +211,22 @@ export const SEARCH_INDEX: SearchEntry[] = [
     href: '/docs/state',
     title: 'State & event bus',
     section: 'Core',
-    description: 'Shared store, cross-remote events, typed event bus.',
-    keywords: ['state', 'store', 'event bus', 'pubsub', 'broadcast', 'communication', 'cross-remote'],
+    description: 'Shared store, atoms, cross-remote events, typed event bus.',
+    keywords: ['state', 'store', 'atom', 'atoms', 'jotai', 'useAtom', 'derivedAtom', 'event bus', 'pubsub', 'broadcast', 'communication', 'cross-remote', 'zustand'],
+  },
+  {
+    href: '/docs/i18n',
+    title: 'Internationalization',
+    section: 'Core',
+    description: 'ICU-lite messages, lazy catalogs, locale detection, shared singleton across MFEs.',
+    keywords: ['i18n', 'internationalization', 'localization', 'l10n', 'locale', 'translate', 'translation', 'plural', 'icu', 'geti18n', 'singleton', 'accept-language', 'detectlocale'],
   },
   {
     href: '/docs/ssr',
     title: 'SSR & static export',
     section: 'Core',
     description: 'Server rendering, streaming, SSG, edge adapters.',
-    keywords: ['ssr', 'server side rendering', 'static', 'ssg', 'streaming', 'edge', 'hydration', 'node', 'cloudflare', 'vercel'],
+    keywords: ['ssr', 'server side rendering', 'static', 'ssg', 'streaming', 'edge', 'hydration', 'node', 'cloudflare', 'vercel', 'edge-light', 'worker', 'export conditions'],
   },
   {
     href: '/docs/islands',
@@ -117,13 +251,6 @@ export const SEARCH_INDEX: SearchEntry[] = [
     description: 'Offline, caching, background sync for federated apps.',
     keywords: ['service worker', 'sw', 'offline', 'cache', 'pwa', 'workbox'],
   },
-  {
-    href: '/docs/rsc',
-    title: 'React Server Components',
-    section: 'Runtime extras',
-    description: 'RSC integration patterns for federated boundaries.',
-    keywords: ['rsc', 'react server components', 'server components', 'react 19'],
-  },
 
   // Production
   {
@@ -131,7 +258,7 @@ export const SEARCH_INDEX: SearchEntry[] = [
     title: 'Security',
     section: 'Production',
     description: 'CSP, SRI, allowlist, sanitize, rate limit, audit.',
-    keywords: ['security', 'csp', 'content security policy', 'sri', 'subresource integrity', 'allowlist', 'sanitize', 'xss', 'rate limit', 'audit'],
+    keywords: ['security', 'csp', 'content security policy', 'sri', 'subresource integrity', 'allowlist', 'sanitize', 'xss', 'rate limit', 'audit', 'requireintegrity', 'integrity enforcement', 'fail closed'],
   },
   {
     href: '/docs/observability',

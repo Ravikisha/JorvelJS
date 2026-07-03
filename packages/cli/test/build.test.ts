@@ -9,6 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import fs from 'fs-extra';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -151,7 +152,10 @@ describe('jorvel build — build order', () => {
 // These skip gracefully when dist/ does not exist yet.
 // Run `pnpm build` in examples/basic first (or the e2e suite does it).
 
-const exampleRoot  = path.resolve(new URL('../../../examples/basic/', import.meta.url).pathname);
+// fileURLToPath (not URL.pathname) — the latter yields `/C:/…` on Windows, so
+// path.resolve produced a bogus path and distReady was permanently false there,
+// silently skipping all 12 build-output assertions even with the example built.
+const exampleRoot  = path.resolve(fileURLToPath(new URL('../../../examples/basic/', import.meta.url)));
 const shellDist    = path.join(exampleRoot, 'apps', 'shell',     'dist');
 const remoteDist   = path.join(exampleRoot, 'apps', 'dashboard', 'dist');
 

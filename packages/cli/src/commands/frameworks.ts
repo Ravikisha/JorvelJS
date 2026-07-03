@@ -85,7 +85,7 @@ function App() {
 render(() => <App />, document.getElementById('root')!);
 `;
 
-function rspackConfig(framework: Framework, name: string, port: number): string {
+function rspackConfig(framework: Framework, _name: string, port: number): string {
   // Pick the framework-specific loader chain. We keep this dependency-free —
   // the loader packages are listed in `devDeps` for the user to install.
   let loader: string;
@@ -216,9 +216,8 @@ export async function scaffoldFrameworkRemote(opts: ScaffoldFrameworkOptions): P
   return { appDir, written, skipped, summary: template.summary };
 }
 
-export const adapterCommand = new Command('adapter')
-  .description('Scaffolders for non-React frameworks (Vue / Svelte / Solid).')
-  .command('add <framework>')
+const adapterAddCommand = new Command('add')
+  .argument('<framework>', 'Framework to scaffold (vue / svelte / solid)')
   .description('Create a new remote built with the chosen framework.')
   .requiredOption('--name <name>', 'App name (becomes apps/<name>/)')
   .option('--port <n>', 'Dev-server port', (v) => Number(v))
@@ -242,3 +241,7 @@ export const adapterCommand = new Command('adapter')
     for (const f of r.written) console.log(kleur.dim(`  wrote ${path.relative(process.cwd(), path.join(r.appDir, f))}`));
     for (const f of r.skipped) console.log(kleur.yellow(`  skip ${f} (exists; use --force)`));
   });
+
+export const adapterCommand = new Command('adapter')
+  .description('Scaffolders for non-React frameworks (Vue / Svelte / Solid).')
+  .addCommand(adapterAddCommand);

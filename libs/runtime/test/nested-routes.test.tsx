@@ -179,6 +179,67 @@ describe('NestedRouter', () => {
     unmount();
   });
 
+  it('renders the segment errorElement when the segment throws (error.tsx)', async () => {
+    function Boom(): React.ReactElement {
+      throw new Error('segment-exploded');
+    }
+
+    window.history.replaceState({}, '', '/app/boom');
+    dispatchJorvelNavigate({ to: '/app/boom', mode: 'replace' });
+
+    const routes: NestedRoute[] = [
+      {
+        path: '/app',
+        element: (
+          <section>
+            <h1 data-testid="layout">shell</h1>
+            <Outlet />
+          </section>
+        ),
+        children: [
+          {
+            path: '/boom',
+            element: <Boom />,
+            errorElement: ({ error }) => (
+              <p data-testid="seg-error">{(error as Error).message}</p>
+            ),
+          },
+        ],
+      },
+    ];
+
+    const { host, unmount } = mount(<NestedRouter routes={routes} />);
+    // Layout survives; only the failing child segment is replaced.
+    await waitFor(
+      () =>
+        !!host.querySelector('[data-testid="layout"]') &&
+        host.querySelector('[data-testid="seg-error"]')?.textContent === 'segment-exploded',
+    );
+    unmount();
+  });
+
+  it('shows the segment loading fallback while its lazy element resolves (loading.tsx)', async () => {
+    let resolveLazy!: (m: { default: React.ComponentType }) => void;
+    const pending = new Promise<{ default: React.ComponentType }>((r) => { resolveLazy = r; });
+
+    window.history.replaceState({}, '', '/slow');
+    dispatchJorvelNavigate({ to: '/slow', mode: 'replace' });
+
+    const routes: NestedRoute[] = [
+      {
+        path: '/slow',
+        loading: <p data-testid="seg-loading">loading-segment</p>,
+        lazy: () => pending,
+      },
+    ];
+
+    const { host, unmount } = mount(<NestedRouter routes={routes} />);
+    await waitFor(() => !!host.querySelector('[data-testid="seg-loading"]'));
+    resolveLazy({ default: () => <p data-testid="slow">slow-done</p> });
+    await waitFor(() => !!host.querySelector('[data-testid="slow"]'));
+    unmount();
+  });
+
   it('resolves a lazily-loaded route element via the `lazy` loader', async () => {
     function LazyLeaf() {
       return <p data-testid="lazy">lazy-leaf</p>;

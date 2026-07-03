@@ -61,6 +61,24 @@ describe('jorvel routes', () => {
     expect(content).toMatch(/path:\s*["']\/users\/:id["']/);
   });
 
+  it('writes jorvel.routes.js (no `import type`) for a JS app', async () => {
+    const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-routes-js-'))) as string;
+    const appsDir = path.join(tmp, 'apps');
+    const dashDir = path.join(appsDir, 'dashboard');
+    await fs.ensureDir(path.join(dashDir, 'src', 'pages'));
+    await fs.writeJson(path.join(dashDir, 'jorvel.app.json'), { name: 'dashboard', type: 'remote', port: 3001 });
+    // JS app: jsconfig.json + .jsx pages, no tsconfig.
+    await fs.writeJson(path.join(dashDir, 'jsconfig.json'), { compilerOptions: {} });
+    await fs.outputFile(path.join(dashDir, 'src', 'pages', 'index.jsx'), '// home\n');
+
+    await runCommand(['--dir', tmp], tmp);
+
+    expect(await fs.pathExists(path.join(dashDir, 'src', 'jorvel.routes.js'))).toBe(true);
+    expect(await fs.pathExists(path.join(dashDir, 'src', 'jorvel.routes.ts'))).toBe(false);
+    const content = await fs.readFile(path.join(dashDir, 'src', 'jorvel.routes.js'), 'utf8');
+    expect(content).not.toContain('import type');
+  });
+
   it('writes jorvel.routes.json manifest for remote app', async () => {
     const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-routes-'))) as string;
     const { dashDir } = await scaffoldWorkspace(tmp);
@@ -91,6 +109,28 @@ describe('jorvel routes', () => {
           r.remote === 'dashboard' && r.path.includes('dashboard')
       )
     ).toBe(true);
+  });
+
+  it('preserves manually-edited host routes (no clobber) and appends new remotes', async () => {
+    const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-routes-'))) as string;
+    const { shellDir } = await scaffoldWorkspace(tmp);
+    // User hand-edits the host manifest: custom module name + a hand-added route.
+    await fs.writeJson(path.join(shellDir, 'jorvel.routes.host.json'), {
+      host: 'shell',
+      routes: [
+        { path: '/dashboard/*', remote: 'dashboard', module: './CustomApp' },
+        { path: '/legacy/*', remote: 'legacy', module: './App' },
+      ],
+    });
+
+    await runCommand(['--dir', tmp], tmp);
+
+    const m = await fs.readJson(path.join(shellDir, 'jorvel.routes.host.json'));
+    // Manual edits preserved.
+    expect(m.routes).toContainEqual({ path: '/dashboard/*', remote: 'dashboard', module: './CustomApp' });
+    expect(m.routes).toContainEqual({ path: '/legacy/*', remote: 'legacy', module: './App' });
+    // dashboard not duplicated.
+    expect(m.routes.filter((r: { remote: string }) => r.remote === 'dashboard')).toHaveLength(1);
   });
 
   it('generates correct import path inside jorvel.routes.ts', async () => {

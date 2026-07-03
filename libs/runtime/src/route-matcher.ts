@@ -38,7 +38,7 @@ export function matchPath(pattern: string, pathname: string): RouteMatch | null 
     if (!us) return null;
 
     if (ps.startsWith(':')) {
-      params[ps.slice(1)] = decodeURIComponent(us);
+      params[ps.slice(1)] = safeDecode(us);
       continue;
     }
 
@@ -49,6 +49,18 @@ export function matchPath(pattern: string, pathname: string): RouteMatch | null 
   if (uSegs.length > pSegs.length) return null;
 
   return { params };
+}
+
+function safeDecode(s: string): string {
+  // Malformed escapes (e.g. a lone "%") make decodeURIComponent throw URIError.
+  // Fall back to the raw segment so a bad URL renders rather than crashing the
+  // matcher — and so client matching stays consistent with the SSR matcher
+  // (route-utils.ts), avoiding hydration mismatches on param routes.
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
 }
 
 function normalize(path: string) {

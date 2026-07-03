@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { EventBus } from '../src/index.js';
 import { attachSchemaRegistry, type Validator } from '../src/schema.js';
 
-interface Events {
+type Events = {
   'cart:add': { sku: string; qty: number };
   'cart:remove': { sku: string };
 }
@@ -81,7 +81,7 @@ describe('attachSchemaRegistry', () => {
         return i as { x: number };
       },
     };
-    interface E { 'n': { x: number } }
+    type E = { 'n': { x: number } };
     const bus = new EventBus<E>();
     attachSchemaRegistry(bus, { n: v }, { onInvalid: 'throw' });
     expect(() => bus.emit('n', { x: 'no' } as never)).toThrow(/bad/);
@@ -96,7 +96,7 @@ describe('attachSchemaRegistry', () => {
   });
 
   it('transforms payload via parse() return value', () => {
-    interface E { 'msg': { id: string } }
+    type E = { 'msg': { id: string } };
     const v: Validator<{ id: string }> = {
       parse: (i) => ({ id: String((i as { id: unknown }).id).toUpperCase() }),
     };

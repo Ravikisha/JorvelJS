@@ -148,6 +148,46 @@ export function detectConflicts(apps: AppStats[]): BuildStats['conflicts'] {
   return conflicts;
 }
 
+// ── First-load JS / size budgets ──────────────────────────────────────────────
+
+export interface SizeBudgets {
+  /** Max total dist bytes for any app. */
+  perApp?: number;
+  /** Max `remoteEntry.js` bytes for any remote. */
+  remoteEntry?: number;
+  /** Per-app override, keyed by app name (bytes). */
+  apps?: Record<string, number>;
+}
+
+export interface BudgetViolation {
+  app: string;
+  kind: 'app' | 'remoteEntry';
+  bytes: number;
+  budget: number;
+}
+
+/**
+ * Compare build stats against size budgets. Returns violations (empty = within
+ * budget). Wire into CI: fail the job when the result is non-empty.
+ */
+export function checkBudgets(stats: BuildStats, budgets: SizeBudgets): BudgetViolation[] {
+  const out: BudgetViolation[] = [];
+  for (const app of stats.apps) {
+    const appBudget = budgets.apps?.[app.name] ?? budgets.perApp;
+    if (appBudget !== undefined && app.bytes > appBudget) {
+      out.push({ app: app.name, kind: 'app', bytes: app.bytes, budget: appBudget });
+    }
+    if (
+      budgets.remoteEntry !== undefined &&
+      app.remoteEntryBytes !== undefined &&
+      app.remoteEntryBytes > budgets.remoteEntry
+    ) {
+      out.push({ app: app.name, kind: 'remoteEntry', bytes: app.remoteEntryBytes, budget: budgets.remoteEntry });
+    }
+  }
+  return out;
+}
+
 export async function writeBuildStats(workspaceDir: string, outPath: string): Promise<BuildStats> {
   const stats = await collectBuildStats(workspaceDir);
   await fs.ensureDir(path.dirname(outPath));

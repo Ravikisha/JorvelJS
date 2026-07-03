@@ -194,7 +194,11 @@ list.build({}, { page: 2 });                  // '/items?page=2'`}
 });
 
 docs.match('/docs/api/runtime/hooks')?.params.wildcard;
-// ['api', 'runtime', 'hooks']`}
+// ['api', 'runtime', 'hooks']
+
+// build() encodes each segment but keeps the '/' separators — no %2F
+docs.build({ wildcard: ['api', 'runtime', 'hooks'] });
+// '/docs/api/runtime/hooks'`}
       />
 
       <h2 id="ssr">SSR usage</h2>

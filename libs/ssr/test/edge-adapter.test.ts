@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import React from 'react';
 import { createEdgeAdapter } from '../src/edge-adapter.js';
 import { LruHtmlCache } from '../src/html-cache.js';
+import { defineLoader, useLoaderData } from '../src/loaders.js';
 import type { SsrRoute, EdgeRequest } from '../src/types.js';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -64,6 +65,71 @@ describe('createEdgeAdapter', () => {
 
     expect(res.status).toBe(404);
     expect(res.body).toContain('404');
+  });
+
+  it('returns 405 for mutating methods (not SSR-rendered like GET)', async () => {
+    const handler = createEdgeAdapter({ App: EdgeApp, template: TEMPLATE, routes: ROUTES });
+    const res = await handler({ url: 'https://example.com/', method: 'POST', headers: {} });
+    expect(res.status).toBe(405);
+    expect(res.headers['allow']).toBe('GET, HEAD, OPTIONS');
+  });
+
+  describe('loaders', () => {
+    function LoaderApp() {
+      const msg = useLoaderData<string>('msg');
+      return React.createElement('p', { 'data-testid': 'msg' }, msg ?? 'none');
+    }
+
+    it('runs loaders before render and exposes data via useLoaderData (SSR) + hydration script', async () => {
+      const handler = createEdgeAdapter({
+        App: LoaderApp,
+        template: TEMPLATE,
+        routes: [{ path: '/' }],
+        loaders: [defineLoader({ key: 'msg', load: () => 'from-loader' })],
+      });
+      const res = await handler(makeRequest('https://example.com/'));
+      expect(res.status).toBe(200);
+      // useLoaderData read the data during SSR render.
+      expect(res.body).toContain('from-loader');
+      // ...and it's serialized for client hydration.
+      expect(res.body).toContain('window.__JORVEL_LOADER_DATA__=');
+      expect(res.body).toContain('"msg":"from-loader"');
+    });
+
+    it('merges loader-set headers and cacheControl into the response', async () => {
+      const handler = createEdgeAdapter({
+        App: LoaderApp,
+        template: TEMPLATE,
+        routes: [{ path: '/' }],
+        loaders: [
+          defineLoader({
+            key: 'msg',
+            cacheControl: 'private, max-age=30',
+            load: (c) => {
+              c.setHeader('Set-Cookie', 'sid=abc');
+              return 'x';
+            },
+          }),
+        ],
+      });
+      const res = await handler(makeRequest('https://example.com/'));
+      expect(res.headers['set-cookie']).toBe('sid=abc');
+      expect(res.headers['cache-control']).toBe('private, max-age=30');
+    });
+
+    it('a loader throwing redirect short-circuits to a 3xx', async () => {
+      const { redirect } = await import('../src/redirect.js');
+      const handler = createEdgeAdapter({
+        App: LoaderApp,
+        template: TEMPLATE,
+        routes: [{ path: '/' }],
+        loaders: [defineLoader({ key: 'msg', load: () => { throw redirect('/login'); } })],
+      });
+      const res = await handler(makeRequest('https://example.com/'));
+      expect(res.status).toBeGreaterThanOrEqual(300);
+      expect(res.status).toBeLessThan(400);
+      expect(res.headers['location']).toBe('/login');
+    });
   });
 
   it('calls onNotFound when provided and no route matches', async () => {

@@ -56,6 +56,24 @@ describe('AuditLogger', () => {
     expect(m.ip).toBe('1.2.3.4'); // not in default redact set
   });
 
+  it('redacts the mixed-case apiKey default key', async () => {
+    // Regression: DEFAULT_REDACT held 'apiKey' but lookup lowercases the key, so
+    // apiKey/ApiKey/APIKEY were never redacted despite being an advertised default.
+    const { sink, entries } = bufferSink();
+    const log = new AuditLogger({ sinks: [sink], now: () => T0 });
+    await log.success({
+      actor: 'u1',
+      action: 'integration.connect',
+      resource: { type: 'integration' },
+      metadata: { apiKey: 'sk-live-123', ApiKey: 'x', APIKEY: 'y', api_key: 'z' },
+    });
+    const m = entries[0]!.metadata as Record<string, unknown>;
+    expect(m.apiKey).toBe('[REDACTED]');
+    expect(m.ApiKey).toBe('[REDACTED]');
+    expect(m.APIKEY).toBe('[REDACTED]');
+    expect(m.api_key).toBe('[REDACTED]');
+  });
+
   it('redactKeys + redactionValue customize scrubbing', async () => {
     const { sink, entries } = bufferSink();
     const log = new AuditLogger({

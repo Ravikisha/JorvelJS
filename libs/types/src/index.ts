@@ -61,3 +61,11 @@ export {
   type GenerateOptions,
 } from './contract-test.js';
 
+export {
+  matchRedirect,
+  matchRewrite,
+  type RedirectRule,
+  type RewriteRule,
+  type RedirectResult,
+} from './redirects.js';
+

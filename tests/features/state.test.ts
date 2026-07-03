@@ -48,8 +48,10 @@ describe('getStore singleton registry', () => {
 
 describe('persistSimpleStore', () => {
   it('seeds from storage on attach', () => {
+    // Envelope `state` is the serialized payload (a string) so custom serializers
+    // round-trip; the default serializer is JSON.stringify.
     const storage = new MemoryStorage();
-    storage.setItem('k', JSON.stringify({ v: 0, state: 42 }));
+    storage.setItem('k', JSON.stringify({ v: 0, state: JSON.stringify(42) }));
     const store = new SimpleStore<number>(0);
     persistSimpleStore(store, { key: 'k', storage, debounceMs: 0 });
     expect(store.get()).toBe(42);
@@ -60,7 +62,7 @@ describe('persistSimpleStore', () => {
     const store = new SimpleStore<number>(0);
     persistSimpleStore(store, { key: 'k', storage, debounceMs: 0 });
     store.set(7);
-    expect(JSON.parse(storage.getItem('k')!)).toEqual({ v: 0, state: 7 });
+    expect(JSON.parse(storage.getItem('k')!)).toEqual({ v: 0, state: JSON.stringify(7) });
   });
 });
 

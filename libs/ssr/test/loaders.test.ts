@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   _clearLoaderSlot,
   defineLoader,
@@ -7,7 +8,12 @@ import {
   setLoaderData,
   useLoaderData,
 } from '../src/loaders.js';
-import { runWithRequestContext, buildRequestContext } from '../src/request-context.js';
+import {
+  runWithRequestContext,
+  buildRequestContext,
+  setRequestContextStore,
+  type RequestContext,
+} from '../src/request-context.js';
 import type { EdgeRequest } from '../src/types.js';
 
 const req: EdgeRequest = { url: 'https://x/users/42?tab=billing', method: 'GET', headers: {} };
@@ -84,6 +90,71 @@ describe('runLoaders', () => {
     const a = defineLoader({ key: 'pageData', load: () => ({ ok: true }) });
     await runLoaders({ loaders: [a], request: req });
     expect(useLoaderData<{ ok: boolean }>('pageData')).toEqual({ ok: true });
+  });
+
+  // Concurrency isolation requires a store that survives `await` — the default
+  // sync slot intentionally does not (that's why Node concurrent deployments opt
+  // into AsyncLocalStorage). With ALS installed, two interleaved requests must
+  // never see each other's loader data.
+  describe('per-request isolation under AsyncLocalStorage (concurrent renders)', () => {
+    const als = new AsyncLocalStorage<RequestContext>();
+    beforeAll(() => {
+      setRequestContextStore({
+        get: () => als.getStore(),
+        set: () => {},
+        run: (ctx, fn) => als.run(ctx, fn),
+      });
+    });
+    afterAll(() => {
+      // Restore a sync-slot store equivalent to the module default.
+      let current: RequestContext | undefined;
+      setRequestContextStore({
+        get: () => current,
+        set: (c) => {
+          current = c;
+        },
+        run: (ctx, fn) => {
+          const prev = current;
+          current = ctx;
+          try {
+            return fn();
+          } finally {
+            current = prev;
+          }
+        },
+      });
+    });
+
+    it('isolates loader data per request context (no cross-request bleed)', async () => {
+      const loader = defineLoader({
+        key: 'user',
+        // Simulate async work so the two requests genuinely interleave.
+        load: async (c) => {
+          await new Promise((r) => setTimeout(r, c.ctx?.cookies['sid'] === 'alice' ? 5 : 1));
+          return c.ctx?.cookies['sid'] ?? null;
+        },
+      });
+
+      const ctxA = buildRequestContext({ url: req.url, headers: { cookie: 'sid=alice' } });
+      const ctxB = buildRequestContext({ url: req.url, headers: { cookie: 'sid=bob' } });
+
+      const [readA, readB] = await Promise.all([
+        runWithRequestContext(ctxA, async () => {
+          await runLoaders({ loaders: [loader], request: req });
+          return useLoaderData<string>('user');
+        }),
+        runWithRequestContext(ctxB, async () => {
+          await runLoaders({ loaders: [loader], request: req });
+          return useLoaderData<string>('user');
+        }),
+      ]);
+
+      expect(readA).toBe('alice');
+      expect(readB).toBe('bob');
+      // Slots live on the contexts, not a shared global.
+      expect((ctxA.locals['__JORVEL_LOADER_SLOT__'] as { data: Record<string, unknown> }).data.user).toBe('alice');
+      expect((ctxB.locals['__JORVEL_LOADER_SLOT__'] as { data: Record<string, unknown> }).data.user).toBe('bob');
+    });
   });
 });
 

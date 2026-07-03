@@ -111,31 +111,48 @@ function UserDetail() {
           <tr><td><code>lazy</code></td><td><code>() =&gt; Promise&lt;{'{ default: ComponentType }'}&gt;</code></td><td>Code-split chunk. Suspense fallback = parent <code>NestedRouter</code> <code>fallback</code>.</td></tr>
           <tr><td><code>children</code></td><td><code>NestedRoute[]</code></td><td>Sub-routes rendered into <code>&lt;Outlet /&gt;</code>.</td></tr>
           <tr><td><code>guards</code></td><td><code>RouteGuard[]</code></td><td>Run before render. Falsy blocks; <code>{'{ redirect }'}</code> redirects.</td></tr>
-          <tr><td><code>errorElement</code></td><td><code>ReactNode</code></td><td>Boundary for this subtree — replaces the default error UI.</td></tr>
+          <tr><td><code>loading</code></td><td><code>ReactNode</code></td><td>Per-segment Suspense fallback — the <code>loading.tsx</code> convention. Shown while this segment&apos;s <code>lazy</code> chunk (or a Suspense-throwing descendant) resolves.</td></tr>
+          <tr><td><code>errorElement</code></td><td><code>ReactNode | (p =&gt; ReactNode)</code></td><td>Per-segment error boundary — the <code>error.tsx</code> convention. A bare node, or a render fn receiving <code>{'{ error, reset }'}</code>.</td></tr>
           <tr><td><code>handle</code></td><td><code>unknown</code></td><td>Arbitrary metadata — e.g. breadcrumb labels, tab IDs, analytics tags.</td></tr>
         </tbody>
       </table>
 
-      <h2 id="error">Error boundaries</h2>
+      <h2 id="per-segment">Per-segment <code>loading.tsx</code> / <code>error.tsx</code></h2>
       <p>
-        Add <code>errorElement</code> to any route to isolate failures to that subtree. A child
-        crash bubbles up to the nearest <code>errorElement</code> ancestor, leaving the rest of the
-        shell intact.
+        Each segment owns its own loading and error boundaries — the same contract as the Next.js
+        App Router&apos;s co-located <code>loading.tsx</code> / <code>error.tsx</code>, expressed as
+        the <code>loading</code> and <code>errorElement</code> fields. A pending or crashing child
+        is contained at its segment: the parent layout (header, sidebar) keeps rendering while only
+        the affected slot swaps to its fallback.
       </p>
       <CodeBlock
         language="tsx"
         code={`const routes: NestedRoute[] = [
   {
     path: '/dashboard',
-    element: <DashboardShell />,
-    errorElement: <DashboardError />,           // failures here keep the global header
+    element: <DashboardShell />,             // stays mounted through child loads + crashes
+    errorElement: <DashboardError />,        // catches anything below with no closer boundary
     children: [
       { index: true, lazy: () => import('./Overview.js') },
-      { path: 'reports/*', lazy: () => import('./reports/Router.js'), errorElement: <ReportsError /> },
+      {
+        path: 'reports/*',
+        lazy: () => import('./reports/Router.js'),
+        loading: <ReportsSkeleton />,        // Suspense fallback scoped to this segment
+        errorElement: ({ error, reset }) => (  // render-fn form gets error + reset
+          <ReportsError message={String(error)} onRetry={reset} />
+        ),
+      },
     ],
   },
 ];`}
       />
+      <p>
+        <code>loading</code> shows while the segment&apos;s <code>lazy</code> chunk resolves and
+        while any descendant throws a promise (e.g. <code>useRemoteData</code> / <code>use()</code>).
+        <code> errorElement</code> catches render-time throws — including a failed <code>lazy</code>
+        import — and only that subtree is replaced. The render-fn form receives{' '}
+        <code>reset()</code> to retry without a full reload.
+      </p>
 
       <h2 id="handle">Route metadata via <code>handle</code></h2>
       <p>

@@ -1,10 +1,33 @@
-import path from 'node:path';
-import fs from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { createEdgeAdapter } from '@jorvel/ssr';
 import type { EdgeAdapterOptions, EdgeAdapterExtraOptions, EdgeRequest } from '@jorvel/ssr';
 
+// NOTE: this module is the Worker RUNTIME entry — it must stay free of Node
+// builtins (node:fs/path/url) so it bundles cleanly for Cloudflare Workers
+// without `nodejs_compat`. The deploy scaffold lives in `./deploy`.
+
 export interface CloudflareAdapterOptions extends EdgeAdapterOptions, EdgeAdapterExtraOptions {}
+
+/**
+ * Cloudflare Worker execution context — minimal shape so we don't take a hard
+ * dep on `@cloudflare/workers-types`. Bindings live on `env`; background work
+ * uses `ctx.waitUntil`.
+ */
+export interface CloudflareExecutionContext {
+  waitUntil: (promise: Promise<unknown>) => void;
+  passThroughOnException: () => void;
+}
+
+/** Per-request hook — receives the raw Worker arguments before handing back to SSR. */
+export type CloudflareRequestHook<Env = unknown> = (args: {
+  request: Request;
+  env: Env;
+  ctx: CloudflareExecutionContext;
+}) => void | Promise<void>;
+
+export interface CloudflareWorkerOptions<Env = unknown> extends CloudflareAdapterOptions {
+  /** Called once per request before render — wire bindings into per-request state here. */
+  onRequest?: CloudflareRequestHook<Env>;
+}
 
 function lowerHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
@@ -34,67 +57,60 @@ function bodyToBodyInit(body: string | Uint8Array | ReadableStream<Uint8Array>):
   return body;
 }
 
-export function createCloudflareWorker(options: CloudflareAdapterOptions) {
+// Per the Fetch spec, constructing a Response with a (non-null) body for a
+// null-body status throws TypeError. The SSR edge adapter returns `body: ''`
+// for 304 (ETag revalidation) and other bodyless responses, so we must pass
+// null for these statuses — otherwise every 304 became a production 500.
+const NULL_BODY_STATUSES = new Set([101, 204, 205, 304]);
+
+function toResponse(res: { body: string | Uint8Array | ReadableStream<Uint8Array>; status: number; headers: Record<string, string> }): Response {
+  const body = NULL_BODY_STATUSES.has(res.status) ? null : bodyToBodyInit(res.body);
+  return new Response(body, { status: res.status, headers: res.headers });
+}
+
+export function createCloudflareWorker<Env = unknown>(
+  options: CloudflareWorkerOptions<Env>,
+) {
   const handler = createEdgeAdapter(options);
+  const { onRequest } = options;
 
   return {
-    async fetch(request: Request): Promise<Response> {
-      const res = await handler(toEdgeRequest(request));
-      return new Response(bodyToBodyInit(res.body), { status: res.status, headers: res.headers });
+    async fetch(
+      request: Request,
+      env: Env,
+      ctx: CloudflareExecutionContext,
+    ): Promise<Response> {
+      if (onRequest) {
+        await onRequest({ request, env, ctx });
+      }
+      return toResponse(await handler(toEdgeRequest(request)));
     },
   };
 }
 
-export function createPagesFunction(options: CloudflareAdapterOptions) {
+export function createPagesFunction<Env = unknown>(
+  options: CloudflareWorkerOptions<Env>,
+) {
   const handler = createEdgeAdapter(options);
+  const { onRequest } = options;
 
-  return async function onRequest(ctx: { request: Request }): Promise<Response> {
-    const res = await handler(toEdgeRequest(ctx.request));
-    return new Response(bodyToBodyInit(res.body), { status: res.status, headers: res.headers });
-  };
-}
-
-// ── Deploy scaffold (used by `jorvel deploy --target cloudflare`) ──────────────
-
-export interface ScaffoldDeployOptions {
-  cwd: string;
-  dryRun?: boolean;
-  log?: (msg: string) => void;
-}
-
-export interface ScaffoldDeployResult {
-  files: { dest: string; written: boolean }[];
-  nextHint: string;
-}
-
-export const deployTarget = 'cloudflare';
-
-export async function scaffoldDeploy(opts: ScaffoldDeployOptions): Promise<ScaffoldDeployResult> {
-  const here = path.dirname(fileURLToPath(import.meta.url));
-  const templatesDir = path.resolve(here, '..', 'templates');
-  const log = opts.log ?? (() => {});
-  const result: ScaffoldDeployResult = {
-    files: [],
-    nextHint: '`wrangler deploy` (or `wrangler pages deploy apps/shell/dist`)',
-  };
-  const entries = ['wrangler.toml'];
-  for (const name of entries) {
-    const src = path.join(templatesDir, name);
-    const dest = path.join(opts.cwd, name);
-    let written = false;
-    try {
-      await fs.access(dest);
-      log(`  skip  ${name} (exists)`);
-    } catch {
-      log(`  write ${name}`);
-      if (!opts.dryRun) {
-        const content = await fs.readFile(src, 'utf8');
-        await fs.mkdir(path.dirname(dest), { recursive: true });
-        await fs.writeFile(dest, content, 'utf8');
-      }
-      written = true;
+  return async function onRequestFn(ctx: {
+    request: Request;
+    env: Env;
+    waitUntil: (p: Promise<unknown>) => void;
+    passThroughOnException: () => void;
+  }): Promise<Response> {
+    if (onRequest) {
+      await onRequest({
+        request: ctx.request,
+        env: ctx.env,
+        ctx: { waitUntil: ctx.waitUntil, passThroughOnException: ctx.passThroughOnException },
+      });
     }
-    result.files.push({ dest, written });
-  }
-  return result;
+    return toResponse(await handler(toEdgeRequest(ctx.request)));
+  };
 }
+
+// Deploy scaffold (used by `jorvel deploy --target cloudflare`) moved to
+// `./deploy` to keep Node builtins out of this Worker-runtime entry.
+export type { ScaffoldDeployOptions, ScaffoldDeployResult } from './deploy.js';

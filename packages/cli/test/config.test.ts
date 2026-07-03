@@ -86,7 +86,11 @@ describe('loadWorkspaceConfig', () => {
     expect(plugins.map((p) => p.name)).toEqual(['p1']);
   });
 
-  it('throws a clear JorvelCliError when jorvel.config.ts has no compiled .js sibling', async () => {
+  it('skips (does not throw on) a jorvel.config.ts with no compiled .js sibling', async () => {
+    // `jorvel init` ships jorvel.config.json alongside an optional typed .ts;
+    // the CLI cannot import raw .ts at runtime, so an unaccompanied .ts must be
+    // a no-op rather than a hard CONFIG-002 throw (which broke every command in
+    // a freshly-init'd workspace).
     const dir = await mkTmpDir('jorvel-config-badts-');
 
     await write(
@@ -94,7 +98,20 @@ describe('loadWorkspaceConfig', () => {
       'export default (this is not valid ts);\n',
     );
 
-    await expect(loadWorkspaceConfig(dir)).rejects.toThrow(/CONFIG-002|no compiled jorvel.config.js/);
+    const { cfg } = await loadWorkspaceConfig(dir);
+    expect(cfg).toEqual({});
+  });
+
+  it('still loads jorvel.config.json even when an unaccompanied .ts is present', async () => {
+    const dir = await mkTmpDir('jorvel-config-jsonts-');
+    await write(path.join(dir, 'jorvel.config.ts'), '// typed reference only\n');
+    await write(
+      path.join(dir, 'jorvel.config.json'),
+      JSON.stringify({ name: 'from-json', appsDir: 'apps' }),
+    );
+    const { cfg } = await loadWorkspaceConfig(dir);
+    expect(cfg.name).toBe('from-json');
+    expect(cfg.appsDir).toBe('apps');
   });
 
   it('loads a compiled jorvel.config.js sibling', async () => {

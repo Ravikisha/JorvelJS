@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "JORVEL DevTools",
+  "version": "0.2.0",
+  "description": "Inspect JORVEL Module Federation: remotes, load timings, and the shared scope.",
+  "minimum_chrome_version": "93",
+  "devtools_page": "devtools.html"
+}

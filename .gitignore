@@ -51,6 +51,14 @@ coverage/
 .nyc_output/
 jest-cache/
 jest-results.json
+playwright-report/
+test-results/
+
+# Turbo
+.turbo/
+
+# Generated dev federation proxy file
+**/jorvel.federation.proxy.json
 
 # Package manager caches / lock files (optional - keep lockfiles if you want reproducible installs)
 .pnpm-store/

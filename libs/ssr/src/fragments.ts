@@ -35,6 +35,22 @@ export interface RenderFragmentsOptions {
   signal?: AbortSignal;
   /** Per-fragment outcome — useful for telemetry. */
   onFragment?: (event: FragmentOutcome) => void;
+  /**
+   * CSP nonce applied to the runtime + per-fragment `<script>` tags. Required
+   * when serving under a `script-src 'nonce-…'` policy, otherwise the fragment
+   * swap scripts are blocked and fragments stay stuck on their fallback.
+   */
+  nonce?: string;
+}
+
+/**
+ * Fragment names are reflected into a DOM id and a `[name="…"]` attribute
+ * selector, so they must be restricted to a selector-safe charset. The SAME
+ * sanitized value must be used for the placeholder attribute, the data-script
+ * id, and the runtime swap call — otherwise the runtime query never matches.
+ */
+function sanitizeFragmentName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
 export type FragmentOutcome =
@@ -105,7 +121,13 @@ async function runFragments(
   return settled;
 }
 
-const RUNTIME_SCRIPT = `<script data-jorvel-fragments>(()=>{const r=window.__jorvelFragment||(window.__jorvelFragment=n=>{const s=document.getElementById('jorvel-frag-data-'+n);const t=document.querySelector('jorvel-fragment[name="'+n+'"]');if(s&&t){t.outerHTML=s.textContent||'';s.remove();}});})();</script>`;
+function nonceAttr(nonce?: string): string {
+  return nonce ? ` nonce="${nonce}"` : '';
+}
+
+function runtimeScript(nonce?: string): string {
+  return `<script data-jorvel-fragments${nonceAttr(nonce)}>(()=>{const r=window.__jorvelFragment||(window.__jorvelFragment=n=>{const s=document.getElementById('jorvel-frag-data-'+n);const t=document.querySelector('jorvel-fragment[name="'+n+'"]');if(s&&t){t.outerHTML=s.textContent||'';s.remove();}});})();</script>`;
+}
 
 export interface RenderFragmentsStreamResult {
   stream: ReadableStream<Uint8Array>;
@@ -122,12 +144,14 @@ export function renderFragmentsToReadableStream(opts: RenderFragmentsOptions): R
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      // 1. Replace all placeholders with anchor markers; flush the shell.
+      // 1. Replace all placeholders with anchor markers; flush the shell. The
+      //    placeholder's name attribute uses the SANITIZED name so it matches the
+      //    runtime's `[name="…"]` query (and the id used in flushFragment).
       const shellPatched = opts.shell.replace(PLACEHOLDER_RE, (_full, name: string) =>
-        `<jorvel-fragment name="${name}">${renderFallbackInline(opts.fragments, name)}</jorvel-fragment>`,
+        `<jorvel-fragment name="${sanitizeFragmentName(name)}">${renderFallbackInline(opts.fragments, name)}</jorvel-fragment>`,
       );
       controller.enqueue(enc.encode(shellPatched));
-      controller.enqueue(enc.encode(RUNTIME_SCRIPT));
+      controller.enqueue(enc.encode(runtimeScript(opts.nonce)));
 
       // 2. Race each fragment; as they resolve, flush a <template> + the
       //    inline call that swaps the placeholder.
@@ -152,7 +176,7 @@ export function renderFragmentsToReadableStream(opts: RenderFragmentsOptions): R
           const outcome: FragmentOutcome = { name: frag.name, phase: 'success', ms: Date.now() - start, bytes: html.length };
           outcomes.push(outcome);
           opts.onFragment?.(outcome);
-          flushFragment(controller, enc, frag.name, html);
+          flushFragment(controller, enc, frag.name, html, opts.nonce);
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           const isTimeout = e.message.includes('timed out after');
@@ -186,14 +210,17 @@ function flushFragment(
   enc: TextEncoder,
   name: string,
   html: string,
+  nonce?: string,
 ): void {
   // Embed the fragment HTML in a script-typed template so the browser doesn't
   // execute or parse it until the runtime swaps it. Escape `</script` to keep
   // the wrapper closed.
-  const safeId = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeId = sanitizeFragmentName(name);
   const safeHtml = html.replace(/<\/script/gi, '<\\/script');
+  // The data <script> is type="text/template" (inert — no nonce needed); the
+  // swap call <script> executes, so it carries the nonce.
   const chunk =
     `<script id="jorvel-frag-data-${safeId}" type="text/template">${safeHtml}</script>` +
-    `<script>window.__jorvelFragment(${JSON.stringify(safeId)})</script>`;
+    `<script${nonceAttr(nonce)}>window.__jorvelFragment(${JSON.stringify(safeId)})</script>`;
   controller.enqueue(enc.encode(chunk));
 }

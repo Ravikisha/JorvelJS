@@ -156,7 +156,20 @@ export interface RateLimitMiddlewareOptions extends RateLimitOptions {
  */
 export function createRateLimitGuard(opts: RateLimitMiddlewareOptions = {}) {
   const limiter = new RateLimiter(opts);
-  const keyFor = opts.keyFor ?? ((req) => req.headers?.['x-forwarded-for'] ?? 'global');
+  // Default key = the FIRST hop of x-forwarded-for (the client the nearest
+  // trusted proxy saw), not the whole comma-list — using the full chain gives
+  // every distinct proxy path its own bucket, and a client can append fake hops.
+  // NOTE: x-forwarded-for is client-spoofable unless you sit behind a trusted
+  // proxy that overwrites it. For untrusted ingress, pass `keyFor` using a
+  // platform-provided client IP (e.g. cf-connecting-ip).
+  const keyFor =
+    opts.keyFor ??
+    ((req) => {
+      const xff = req.headers?.['x-forwarded-for'];
+      if (!xff) return 'global';
+      const first = xff.split(',')[0]?.trim();
+      return first || 'global';
+    });
   const status = opts.status ?? 429;
   const bodyOpt = opts.body ?? 'Too Many Requests';
 

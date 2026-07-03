@@ -1,0 +1,52 @@
+{
+  "name": "create-jorvel",
+  "version": "0.2.0",
+  "description": "Scaffold a new JORVEL workspace: `npm create jorvel@latest my-app`. Thin wrapper over `jorvel init`.",
+  "license": "MIT",
+  "homepage": "https://github.com/Ravikisha/JorvelJS#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ravikisha/JorvelJS.git",
+    "directory": "packages/create-jorvel"
+  },
+  "keywords": [
+    "jorvel",
+    "create",
+    "create-jorvel",
+    "module-federation",
+    "scaffold",
+    "starter"
+  ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "bin": {
+    "create-jorvel": "./dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "jorvel": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3",
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.9"
+  }
+}

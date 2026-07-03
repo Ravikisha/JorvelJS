@@ -50,6 +50,27 @@ describe('jorvel federation', () => {
     });
   });
 
+  it('wires hyphenated remotes with a sanitized container global on the host', async () => {
+    // Regression: a remote named `user-portal` has container global `user_portal`
+    // (ModuleFederationPlugin name), but the host must reference that same global
+    // on the left of `@` while keeping the hyphenated import-specifier key.
+    const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-fed-hyphen-'))) as string;
+    const appsDir = path.join(tmp, 'apps');
+    await fs.ensureDir(path.join(appsDir, 'shell'));
+    await fs.writeJson(path.join(appsDir, 'shell', 'jorvel.app.json'), { name: 'shell', type: 'host', port: 3000 });
+    await fs.ensureDir(path.join(appsDir, 'user-portal'));
+    await fs.writeJson(path.join(appsDir, 'user-portal', 'jorvel.app.json'), { name: 'user-portal', type: 'remote', port: 3002 });
+
+    await runCommand(['--dir', tmp], tmp);
+
+    const remoteCfg = await fs.readJson(path.join(appsDir, 'user-portal', 'jorvel.federation.json'));
+    expect(remoteCfg.name).toBe('user_portal');
+
+    const hostCfg = await fs.readJson(path.join(appsDir, 'shell', 'jorvel.federation.json'));
+    // Key keeps the hyphen (import('user-portal/App')); global is sanitized.
+    expect(hostCfg.remotes['user-portal']).toBe('user_portal@http://localhost:3002/remoteEntry.js');
+  });
+
   it('remote config has correct name and filename fields', async () => {
     const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-fed-'))) as string;
     const appsDir = await scaffold(tmp);
@@ -100,12 +121,13 @@ describe('jorvel federation', () => {
 
     expect(hostCfg.shared?.['@jorvel/runtime']?.singleton).toBe(true);
     expect(remoteCfg.shared?.['@jorvel/runtime']?.singleton).toBe(true);
-    // Must be eager to prevent loadShareSync #RUNTIME-006
+    // HOST eager:true — owns the share scope; REMOTE eager:false — lazy-resolves
+    // through host's scope via the async boundary in main.{tsx,jsx}.
     expect(hostCfg.shared?.['@jorvel/runtime']?.eager).toBe(true);
-    expect(remoteCfg.shared?.['@jorvel/runtime']?.eager).toBe(true);
+    expect(remoteCfg.shared?.['@jorvel/runtime']?.eager).toBe(false);
   });
 
-  it('@jorvel/event-bus is always a singleton and eager shared dep to prevent duplicate instances and loadShareSync errors', async () => {
+  it('@jorvel/event-bus is a singleton on both sides; eager on host, lazy on remote', async () => {
     const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-fed-'))) as string;
     const appsDir = await scaffold(tmp);
 
@@ -117,10 +139,10 @@ describe('jorvel federation', () => {
     expect(hostCfg.shared?.['@jorvel/event-bus']?.singleton).toBe(true);
     expect(remoteCfg.shared?.['@jorvel/event-bus']?.singleton).toBe(true);
     expect(hostCfg.shared?.['@jorvel/event-bus']?.eager).toBe(true);
-    expect(remoteCfg.shared?.['@jorvel/event-bus']?.eager).toBe(true);
+    expect(remoteCfg.shared?.['@jorvel/event-bus']?.eager).toBe(false);
   });
 
-  it('react and react-dom shared entries have eager: true in both host and remote (async boundary prevents RUNTIME-006)', async () => {
+  it('react/react-dom — eager on host (share-scope owner), lazy on remote', async () => {
     const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-fed-'))) as string;
     const appsDir = await scaffold(tmp);
 
@@ -129,12 +151,13 @@ describe('jorvel federation', () => {
     const hostCfg = await fs.readJson(path.join(appsDir, 'shell', 'jorvel.federation.json'));
     const remoteCfg = await fs.readJson(path.join(appsDir, 'dashboard', 'jorvel.federation.json'));
 
-    // Both host and remote must have eager: true — the async boundary (main.tsx → import('./bootstrap'))
-    // ensures the share scope is initialized before any shared dep is consumed synchronously.
+    // Host must be eager so the share scope is populated before any remote loads.
     expect(hostCfg.shared?.['react']?.eager).toBe(true);
     expect(hostCfg.shared?.['react-dom']?.eager).toBe(true);
-    expect(remoteCfg.shared?.['react']?.eager).toBe(true);
-    expect(remoteCfg.shared?.['react-dom']?.eager).toBe(true);
+    // Remote must be lazy so the async boundary (main → import('./bootstrap'))
+    // can initialize the share scope before React is consumed synchronously.
+    expect(remoteCfg.shared?.['react']?.eager).toBe(false);
+    expect(remoteCfg.shared?.['react-dom']?.eager).toBe(false);
   });
 
   it('host remotes map uses name@url format pointing to the remote port', async () => {

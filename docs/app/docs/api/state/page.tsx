@@ -165,6 +165,19 @@ const persisted = persistenceMiddleware<Cart, Action>({
 });`}
       />
 
+      <h2 id="atoms">Atoms</h2>
+      <CodeBlock
+        language="ts"
+        code={`atom<T>(initial: T): WritableAtom<T>;          // { get(); set(next | (prev)=>next); subscribe(cb) }
+derivedAtom<Deps, T>(deps: Deps, compute: (values) => T): ReadableAtom<T>;
+isWritableAtom<T>(a: ReadableAtom<T>): a is WritableAtom<T>;
+
+// @jorvel/state/react
+useAtom<T>(atom: WritableAtom<T>): [T, (next: T | ((prev: T) => T)) => void];
+useAtomValue<T>(atom: ReadableAtom<T>): T;       // subscribes
+useSetAtom<T>(atom: WritableAtom<T>): (next) => void;  // setter only, no subscription`}
+      />
+
       <h2 id="selectors">Selectors</h2>
       <p>
         Memoized derivation. <code>createSelector</code> uses reference equality across the input

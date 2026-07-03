@@ -65,6 +65,8 @@ describe('allowlist extras', () => {
     });
     expect(al.isAllowed('https://cdn.example.com/r.js', 'allowed-remote')).toBe(true);
     expect(al.isAllowed('https://cdn.example.com/r.js', 'evil')).toBe(false);
+    // Regression: an unnamed lookup must NOT bypass a configured names allowlist.
+    expect(al.isAllowed('https://cdn.example.com/r.js')).toBe(false);
   });
 
   it('rejects malformed URL', () => {

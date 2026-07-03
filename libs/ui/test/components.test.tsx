@@ -105,9 +105,12 @@ describe('storybook scaffold', () => {
     );
   });
 
-  it('main.ts globs the stories under libs/ui', () => {
+  it('main.ts globs the stories under libs/ui/stories (where they are written)', () => {
     const main = storybookFiles().find((f) => f.path === '.storybook/main.ts')!;
-    expect(main.contents).toContain("'../libs/ui/src/**/*.stories.@(ts|tsx)'");
+    expect(main.contents).toContain("'../libs/ui/stories/**/*.stories.@(ts|tsx)'");
+    // Stories live in stories/, NOT src/ — the glob must match.
+    const storyPaths = storybookFiles().filter((f) => f.path.endsWith('.stories.tsx'));
+    expect(storyPaths.every((f) => f.path.startsWith('libs/ui/stories/'))).toBe(true);
   });
 
   it('preview.ts wraps stories in ThemeProvider', () => {

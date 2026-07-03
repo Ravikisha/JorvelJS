@@ -40,9 +40,22 @@ function getExtension(): DevtoolsExtension | undefined {
  * Connect a `Store` to Redux DevTools. Returns a detach function. When the
  * extension is not present, this is a no-op.
  */
+const DEVTOOLS_MARK = Symbol.for('jorvel.state.devtools.connected');
+
 export function connectDevtools<S, A>(store: Store<S, A>, opts: DevtoolsOptions = {}): () => void {
   const ext = getExtension();
   if (!ext) return () => {};
+
+  // Re-entrancy guard: connecting the same store twice would double-wrap
+  // dispatch (every action sent twice) and, with out-of-order detach, resurrect
+  // a stale wrapper. Refuse the second connect until the first detaches.
+  const marked = store as unknown as { [DEVTOOLS_MARK]?: boolean };
+  if (marked[DEVTOOLS_MARK]) {
+    // eslint-disable-next-line no-console
+    console.warn('[jorvel/state] connectDevtools: store already connected; ignoring duplicate.');
+    return () => {};
+  }
+  marked[DEVTOOLS_MARK] = true;
 
   const conn = ext.connect({ name: opts.name ?? 'jorvel-state', features: opts.features ?? {} });
   conn.init(store.getState());
@@ -73,6 +86,7 @@ export function connectDevtools<S, A>(store: Store<S, A>, opts: DevtoolsOptions 
 
   return () => {
     (store as unknown as { dispatch: (a: A) => void }).dispatch = originalDispatch;
+    delete marked[DEVTOOLS_MARK];
     unsubExt();
     conn.unsubscribe();
   };

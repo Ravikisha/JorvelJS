@@ -8,6 +8,13 @@
  * One entry in the host route table.
  *
  * Maps a URL pattern (static, `:param`, `*` splat) to a remote app.
+ *
+ * NOTE: this must stay structurally identical to `RouteTarget` in
+ * `@jorvel/runtime` (which is the canonical, consumer-facing definition).
+ * `@jorvel/runtime` is intentionally a zero-dependency package, so it cannot
+ * import this type — the two are kept in sync by hand. The field is `module`
+ * (NOT `expose`) to match the runtime, the routing compiler, the CLI codegen,
+ * and the `jorvel.routes.host.json` files all of which use `module`.
  */
 export type RouteTarget = {
   /** URL pattern — e.g. `"/"`, `"/dashboard/*"`, `"/users/:id"`. */
@@ -18,7 +25,7 @@ export type RouteTarget = {
    * Exposed module key within the remote container.
    * Defaults to `"./App"` if not specified.
    */
-  expose?: string;
+  module?: string;
 };
 
 /**

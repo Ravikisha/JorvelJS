@@ -13,9 +13,25 @@ import { cacheControl, buildWeakEtag, ifNoneMatchHit, type CacheControlOptions }
 import { isRedirect } from './redirect.js';
 import { isJsonResponse, isNotFound } from './response.js';
 import { buildRequestContext, runWithRequestContext } from './request-context.js';
+import { runLoaders, type LoaderDescriptor } from './loaders.js';
 import { escapeHtml } from '@jorvel/security';
 import type { HtmlCache } from './html-cache.js';
 import type { EdgeAdapterHandler, EdgeAdapterOptions, EdgeRequest, EdgeResponse } from './types.js';
+
+/** Resolves the loaders that run for a matched route before render. */
+export type LoadersResolver =
+  | LoaderDescriptor<unknown>[]
+  | ((ctx: {
+      request: EdgeRequest;
+      pathname: string;
+      params: Record<string, string>;
+      route: string;
+    }) => LoaderDescriptor<unknown>[] | undefined);
+
+/** Serialize loader data for a `<script>` payload (escape `<` so it can't break out). */
+function serializeLoaderData(data: Record<string, unknown>): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
 
 export interface EdgeAdapterExtraOptions {
   /** Default Cache-Control for successful responses. */
@@ -53,6 +69,16 @@ export interface EdgeAdapterExtraOptions {
    * skip caching for this request (e.g. authenticated routes).
    */
   cacheKey?: (ctx: { request: EdgeRequest; pathname: string }) => string | null;
+  /**
+   * Per-route data loaders run (inside the request context) before render. Their
+   * aggregated data is available to components via `useLoaderData` during SSR and
+   * serialized into `window.__JORVEL_LOADER_DATA__` for client hydration; their
+   * `setHeader` calls and `cacheControl` are merged into the response. A loader
+   * may throw `redirect` / `json` / `notFound` to short-circuit. The rendered
+   * HTML cache is auto-disabled when loaders are present (responses are
+   * per-request).
+   */
+  loaders?: LoadersResolver;
 }
 
 function lowerKeys(headers?: Record<string, string>): Record<string, string> {
@@ -107,10 +133,13 @@ export function createEdgeAdapter(
     enrichHead,
     htmlCache,
     cacheKey,
+    loaders,
   } = options;
 
   const baseExtra = lowerKeys(extraHeaders);
-  const cacheEnabled = Boolean(htmlCache && etag && !enrichHead);
+  // Caching renders per-request HTML is unsafe when enrichHead OR loaders are in
+  // play (loaders may set per-request headers / data).
+  const cacheEnabled = Boolean(htmlCache && etag && !enrichHead && !loaders);
 
   return async function handleEdgeRequest(request: EdgeRequest): Promise<EdgeResponse> {
     const url = new URL(request.url);
@@ -120,6 +149,17 @@ export function createEdgeAdapter(
     if (method === 'OPTIONS') {
       return {
         status: 204,
+        headers: { ...baseExtra, allow: 'GET, HEAD, OPTIONS' },
+        body: '',
+      };
+    }
+
+    // This adapter only renders read requests. Mutating methods would otherwise
+    // be SSR-rendered like GET (and, worse, their output cached) — reject them so
+    // loaders (read-side) never run for a mutation.
+    if (method !== 'GET' && method !== 'HEAD') {
+      return {
+        status: 405,
         headers: { ...baseExtra, allow: 'GET, HEAD, OPTIONS' },
         body: '',
       };
@@ -163,9 +203,31 @@ export function createEdgeAdapter(
       }
     }
 
+    // Resolve route loaders (a static list or a per-request resolver).
+    const routeLoaders = typeof loaders === 'function'
+      ? loaders({ request, pathname, params: match.params, route: match.path }) ?? []
+      : loaders ?? [];
+
     let result;
+    let loaderData: Record<string, unknown> | undefined;
+    let loaderHeaders: Record<string, string> | undefined;
+    let loaderCacheControl: string | undefined;
     const ctx = buildRequestContext(request);
     try {
+      // Loaders (async) run first, inside the request context. runLoaders captures
+      // ctx + its slot synchronously and writes the data into ctx.locals, so it
+      // survives the await even on the sync-slot store. A loader may throw
+      // redirect/json/notFound — caught below.
+      if (routeLoaders.length) {
+        const r = await runWithRequestContext(ctx, () =>
+          runLoaders({ loaders: routeLoaders, request, params: match.params }),
+        );
+        loaderData = r.data;
+        loaderHeaders = r.headers;
+        loaderCacheControl = r.cacheControl;
+      }
+      // Render is SYNCHRONOUS (no await before reactRenderToString), so the ctx
+      // stays active for the whole render and useLoaderData() reads ctx.locals.
       result = await runWithRequestContext(ctx, () =>
         renderRouteToString(App, { path: match.path, params: match.params }),
       );
@@ -195,11 +257,19 @@ export function createEdgeAdapter(
       throw err;
     }
 
-    const headExtra = enrichHead ? await enrichHead({ request, pathname }) : '';
-    const html = injectIntoTemplate(template, result.html, headExtra);
+    const enrichedHead = enrichHead ? await enrichHead({ request, pathname }) : '';
+    // Serialize loader data for client hydration (the client seeds the loader
+    // slot from window.__JORVEL_LOADER_DATA__).
+    const loaderHead =
+      loaderData && Object.keys(loaderData).length
+        ? `<script>window.__JORVEL_LOADER_DATA__=${serializeLoaderData(loaderData)}</script>`
+        : '';
+    const html = injectIntoTemplate(template, result.html, enrichedHead + loaderHead);
 
     const responseHeaders: Record<string, string> = {
       ...baseExtra,
+      // Loader-set headers (e.g. Set-Cookie) — already lowercased by runLoaders.
+      ...(loaderHeaders ?? {}),
       'content-type': 'text/html; charset=utf-8',
       'x-jorvel-ssr': '1',
     };
@@ -210,8 +280,14 @@ export function createEdgeAdapter(
     appendVary(responseHeaders, 'Accept-Encoding');
 
     const cacheOpts = cacheOverrides?.[match.path] ?? cache;
-    if (cacheOpts && result.statusCode < 400) {
-      responseHeaders['cache-control'] = cacheControl(cacheOpts);
+    if (result.statusCode < 400) {
+      // A loader's cacheControl (route-specific) takes precedence over the
+      // adapter-level default/override.
+      if (loaderCacheControl) {
+        responseHeaders['cache-control'] = loaderCacheControl;
+      } else if (cacheOpts) {
+        responseHeaders['cache-control'] = cacheControl(cacheOpts);
+      }
     }
 
     let etagValue: string | undefined;

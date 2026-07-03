@@ -13,11 +13,7 @@
     "vitest": "^2.1.9"
   },
   "scripts": {
-    "predev": "pnpm -C ../../packages/cli build && pnpm -C ../../libs/runtime build && pnpm -C ../../libs/ssr build",
-    "prefederation": "pnpm -C ../../packages/cli build",
-    "federation": "node ../../packages/cli/dist/index.js federation --dir .",
-    "routes": "node ../../packages/cli/dist/index.js routes --dir .",
-    "dev": "node ../../packages/cli/dist/index.js dev --dir .",
+    "pressr:export": "pnpm -C ../../packages/cli build && pnpm -C ../../libs/ssr build",
     "ssr:export": "node ../../packages/cli/dist/index.js ssr export --dir . --config jorvel.ssr.json",
     "test": "vitest run"
   }

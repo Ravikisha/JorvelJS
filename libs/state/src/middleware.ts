@@ -56,6 +56,7 @@ export function applyMiddleware<S, A>(
     subscribe: store.subscribe.bind(store) as (l: StoreListener<S>) => Unsubscribe,
     replaceReducer: store.replaceReducer.bind(store),
     replaceState: store.replaceState.bind(store),
+    batch: store.batch.bind(store),
     get listenerCount() {
       return store.listenerCount;
     },

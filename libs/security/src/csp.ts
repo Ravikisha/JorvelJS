@@ -1,3 +1,5 @@
+import { base64FromBytes } from './base64.js';
+
 export type CspDirective =
   | 'default-src'
   | 'script-src'
@@ -51,7 +53,10 @@ const BASELINE: CspPolicy = {
   'default-src': ["'self'"],
   'script-src': ["'self'"],
   'style-src': ["'self'", "'unsafe-inline'"],
-  'img-src': ["'self'", 'data:', 'https:'],
+  // Default to self + data: only. A blanket `https:` lets ANY https origin be an
+  // image source — a trivial pixel-beacon exfil channel under an otherwise
+  // strict policy. Opt origins in explicitly via the `remotes`/policy options.
+  'img-src': ["'self'", 'data:'],
   'font-src': ["'self'", 'data:'],
   'connect-src': ["'self'"],
   'object-src': ["'none'"],
@@ -112,8 +117,32 @@ export function buildCsp(policy: CspPolicy = {}, opts: CspOptions = {}): string 
   return serialize(merged);
 }
 
+/**
+ * Directives the browser ignores when CSP is delivered via <meta>. They only
+ * apply via the `Content-Security-Policy` HTTP header. Strip them from the
+ * meta-tag output so we don't ship dead policy fragments.
+ *
+ * Per the CSP spec, `frame-ancestors`, `report-uri`, `report-to`, and `sandbox`
+ * are meta-ineligible. `sandbox` is not in our `CspDirective` union, so we
+ * only need to filter the three that are.
+ */
+const META_INELIGIBLE: readonly CspDirective[] = [
+  'frame-ancestors',
+  'report-uri',
+  'report-to',
+];
+
 export function cspMeta(policy: CspPolicy = {}, opts: CspOptions = {}): string {
-  return `<meta http-equiv="Content-Security-Policy" content="${escapeAttr(buildCsp(policy, opts))}">`;
+  // Strip directives the spec excludes from meta-delivery.
+  const filtered: CspPolicy = { ...policy };
+  for (const k of META_INELIGIBLE) {
+    delete filtered[k];
+  }
+  // Drop opts that produce ineligible directives (reportUri/reportTo).
+  const filteredOpts: CspOptions = { ...opts };
+  delete filteredOpts.reportUri;
+  delete filteredOpts.reportTo;
+  return `<meta http-equiv="Content-Security-Policy" content="${escapeAttr(buildCsp(filtered, filteredOpts))}">`;
 }
 
 function pushUnique(p: CspPolicy, key: CspDirective, values: string[]): void {
@@ -145,58 +174,27 @@ function escapeAttr(s: string): string {
   return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-const B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-function b64Char(idx: number): string {
-  // Index is always in 0..63; the assertion silences noUncheckedIndexedAccess.
-  return B64_ALPHABET[idx] as string;
-}
-
-function base64FromBytes(bytes: Uint8Array): string {
-  // Avoid Buffer (not available on Workers) and large fromCharCode spreads.
-  let out = '';
-  let i = 0;
-  for (; i + 2 < bytes.length; i += 3) {
-    const a = bytes[i] as number;
-    const b = bytes[i + 1] as number;
-    const c = bytes[i + 2] as number;
-    out +=
-      b64Char(a >> 2) +
-      b64Char(((a & 0x03) << 4) | (b >> 4)) +
-      b64Char(((b & 0x0f) << 2) | (c >> 6)) +
-      b64Char(c & 0x3f);
-  }
-  if (i < bytes.length) {
-    const a = bytes[i] as number;
-    if (i + 1 === bytes.length) {
-      out += b64Char(a >> 2) + b64Char((a & 0x03) << 4) + '==';
-    } else {
-      const b = bytes[i + 1] as number;
-      out +=
-        b64Char(a >> 2) +
-        b64Char(((a & 0x03) << 4) | (b >> 4)) +
-        b64Char((b & 0x0f) << 2) +
-        '=';
-    }
-  }
-  return out;
-}
 
 /**
  * Edge-runtime-safe nonce generator.
  *
- * Uses Web Crypto when available (Workers, Vercel Edge, modern Node 19+) and
- * falls back to `Math.random()` only when no crypto is available. The result
- * is base64url-clean (no `+/=` are not stripped — only the alphabet is safe
- * for CSP nonce values per CSP3).
+ * Requires Web Crypto (`crypto.getRandomValues`), which exists on every runtime
+ * JORVEL targets: Workers, Vercel Edge, Deno, browsers, and Node >=19. A CSP
+ * nonce MUST be cryptographically unpredictable, so we throw rather than
+ * silently degrade to `Math.random()` — a predictable nonce defeats the policy
+ * entirely (an attacker can guess it and inline arbitrary scripts).
+ *
+ * The output uses the standard base64 alphabet, which is valid for a CSP nonce.
  */
 export function generateNonce(bytes = 16): string {
   const arr = new Uint8Array(bytes);
   const g = globalThis as { crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array } };
-  if (g.crypto?.getRandomValues) {
-    g.crypto.getRandomValues(arr);
-  } else {
-    for (let i = 0; i < bytes; i++) arr[i] = Math.floor(Math.random() * 256);
+  if (!g.crypto?.getRandomValues) {
+    throw new Error(
+      'generateNonce requires crypto.getRandomValues (Web Crypto). A predictable ' +
+        'nonce would defeat the CSP — refusing to fall back to Math.random().',
+    );
   }
+  g.crypto.getRandomValues(arr);
   return base64FromBytes(arr);
 }

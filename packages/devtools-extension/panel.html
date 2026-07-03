@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font: 13px/1.5 system-ui, sans-serif; margin: 0; padding: 12px; color: #1a1a1a; background: #fff; }
+      @media (prefers-color-scheme: dark) { body { color: #eee; background: #1e1e1e; } th { border-color: #444 !important; } td { border-color: #333 !important; } }
+      header { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+      .ver { color: #6366f1; font-weight: 600; }
+      .count { margin-left: auto; opacity: 0.7; font-size: 12px; }
+      h2 { font-size: 12px; text-transform: uppercase; opacity: 0.6; margin: 16px 0 6px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #eee; }
+      th { font-weight: 600; opacity: 0.7; }
+      .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; word-break: break-all; }
+      .empty { opacity: 0.55; font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <div id="root"><p class="empty">Loading…</p></div>
+    <script type="module" src="panel.js"></script>
+  </body>
+</html>

@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { CodeBlock } from '@/components/site/code-block';
 import { Callout } from '@/components/docs/callout';
 import { CompassIcon } from '@/components/icons';
+import { TracingBeam } from '@/components/aceternity/tracing-beam';
 
 export const metadata = {
   title: 'Concepts',
@@ -11,7 +12,7 @@ export const metadata = {
 
 export default function ConceptsPage() {
   return (
-    <>
+    <TracingBeam>
       <Badge variant="accent" className="mb-4">
         <CompassIcon className="h-3 w-3" /> Mental model
       </Badge>
@@ -189,9 +190,10 @@ export const dashboardContract = defineFederationContract({
           of a federated app, not a destination.
         </li>
         <li>
-          <strong>Server-driven React (RSC).</strong> Not yet supported (see{' '}
-          <a href="/docs/rsc">RSC status</a>). If RSC is required today, ship Next.js App Router
-          and revisit federation when the wire format stabilizes.
+          <strong>Server-driven React (RSC).</strong> Not supported — federation + the RSC wire
+          format aren&apos;t compatible upstream yet. JORVEL ships islands, streaming SSR,{' '}
+          <code>use(promise)</code>, and hydratable server stores instead. Need RSC today? Ship
+          Next.js App Router.
         </li>
       </ul>
 
@@ -200,6 +202,6 @@ export const dashboardContract = defineFederationContract({
         <a href="/docs/routing">Routing</a> if you&apos;re building, or{' '}
         <a href="/docs/federation">Federation</a> if you&apos;re wiring up shared deps.
       </Callout>
-    </>
+    </TracingBeam>
   );
 }

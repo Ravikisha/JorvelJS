@@ -131,6 +131,12 @@ export function renderRouteToStream(
     /* ignore — we've already routed the error through rejectAll */
   });
 
+  // A shell error rejects shellReady. Callers that only await allReady (or just
+  // pipe) would otherwise leave that rejection unhandled — fatal under Node's
+  // default --unhandled-rejections=throw. Attach a no-op handler so the rejection
+  // is always considered handled; real consumers attach their own.
+  shellReady.catch(() => {});
+
   return {
     pipe(destination: NodeJS.WritableStream) {
       passThrough.pipe(destination);

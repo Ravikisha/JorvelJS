@@ -41,6 +41,8 @@ export interface SchemaRegistryHandle {
  * Wrap an EventBus so every `emit` consults the schema map. Returns a handle
  * with a `detach()` to restore the original `emit`.
  */
+const SCHEMA_MARK = Symbol.for('jorvel.event-bus.schema.attached');
+
 export function attachSchemaRegistry<Events extends EventMap>(
   bus: EventBus<Events>,
   schemas: SchemaMap<Events>,
@@ -48,6 +50,18 @@ export function attachSchemaRegistry<Events extends EventMap>(
 ): SchemaRegistryHandle {
   const mode = opts.onInvalid ?? 'warn';
   const log = opts.log;
+
+  // Re-entrancy guard: attaching twice would double-wrap emit, and an
+  // out-of-order detach would restore a stale wrapper (silently dropping or
+  // resurrecting validators). Refuse the second attach until the first detaches.
+  const marked = bus as unknown as { [SCHEMA_MARK]?: boolean };
+  if (marked[SCHEMA_MARK]) {
+    // eslint-disable-next-line no-console
+    console.warn('[jorvel/event-bus] attachSchemaRegistry: bus already has a registry; ignoring duplicate.');
+    return { detach() {} };
+  }
+  marked[SCHEMA_MARK] = true;
+
   const original = bus.emit.bind(bus);
 
   (bus as { emit: EventBus<Events>['emit'] }).emit = function patched<
@@ -83,6 +97,7 @@ export function attachSchemaRegistry<Events extends EventMap>(
   return {
     detach() {
       (bus as { emit: EventBus<Events>['emit'] }).emit = original;
+      delete marked[SCHEMA_MARK];
     },
   };
 }

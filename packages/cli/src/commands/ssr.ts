@@ -18,6 +18,73 @@ import { printCliError } from '../errors.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+const STATIC_MIME: Record<string, string> = {
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.cjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.map': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
+  '.wasm': 'application/wasm',
+};
+
+/**
+ * Serve a static file under `root` for a request pathname. Returns true when it
+ * served a response, false to fall through to SSR. Only handles requests that
+ * look like a file (have an extension) and stay inside `root` (traversal-guarded).
+ */
+async function tryServeStatic(
+  root: string,
+  pathname: string,
+  method: string,
+  res: http.ServerResponse,
+): Promise<boolean> {
+  const ext = path.extname(pathname).toLowerCase();
+  if (!ext) return false; // route request, not an asset → let SSR handle it
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return false;
+  }
+  const abs = path.resolve(root, '.' + (decoded.startsWith('/') ? decoded : '/' + decoded));
+  // Path-traversal guard: resolved path must be the root or inside it.
+  if (abs !== root && !abs.startsWith(root + path.sep)) return false;
+  let stat: { isFile(): boolean; size: number };
+  try {
+    stat = await fs.stat(abs);
+  } catch {
+    return false;
+  }
+  if (!stat.isFile()) return false;
+  res.statusCode = 200;
+  res.setHeader('content-type', STATIC_MIME[ext] ?? 'application/octet-stream');
+  res.setHeader('content-length', String(stat.size));
+  if (method === 'HEAD') {
+    res.end();
+    return true;
+  }
+  await new Promise<void>((resolve, reject) => {
+    const stream = fs.createReadStream(abs);
+    stream.on('error', reject);
+    stream.on('end', () => resolve());
+    stream.pipe(res);
+  });
+  return true;
+}
+
 async function loadSsrConfig(workspaceDir: string): Promise<SsrConfig | null> {
   const configPath = path.join(workspaceDir, 'jorvel.ssr.json');
   if (!(await fs.pathExists(configPath))) return null;
@@ -62,7 +129,10 @@ function withWorkspaceNodePath<T>(workspaceDir: string, fn: () => Promise<T>): P
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   cjs('module').Module._initPaths();
   return fn().finally(() => {
-  process.env['NODE_PATH'] = prev;
+    // Restore precisely: if NODE_PATH was unset, delete it — assigning `prev`
+    // (undefined) would coerce to the literal string "undefined".
+    if (prev === undefined) delete process.env['NODE_PATH'];
+    else process.env['NODE_PATH'] = prev;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     cjs('module').Module._initPaths();
   });
@@ -181,7 +251,8 @@ const serveCommand = new Command('serve')
   .option('--stream', 'Use React 18 streaming SSR when available (recommended)', true)
   .option('--no-stream', 'Disable streaming SSR and render to string')
   .option('-c, --config <path>', 'Path to jorvel.ssr.json')
-  .action(async (opts: { dir: string; port: string; config?: string; stream?: boolean }) => {
+  .option('--static <dir>', 'Serve built client assets from this dir (e.g. apps/shell/dist) so hydration bundles resolve')
+  .action(async (opts: { dir: string; port: string; config?: string; stream?: boolean; static?: string }) => {
     const workspaceDir = path.resolve(opts.dir);
     const port = Number(opts.port);
 
@@ -241,6 +312,19 @@ const serveCommand = new Command('serve')
 
     const useStreaming = opts.stream !== false && !!renderRouteToStream;
 
+    // Detect a raw-HTML-string App ONCE — not per request. Calling App() on every
+    // request re-invokes the component (throws "invalid hook call" for hook-using
+    // components, turning every request into a 500) and double-runs side effects.
+    let isStringApp = false;
+    try {
+      isStringApp = typeof App === 'function' && typeof App({ path: '/', params: {} }) === 'string';
+    } catch {
+      isStringApp = false; // a throwing App is a React component, not a string app
+    }
+
+    // Optional static asset root (built client bundles) so hydration JS resolves.
+    const staticRoot = opts.static ? path.resolve(workspaceDir, opts.static) : null;
+
     const server = http.createServer(async (req, res) => {
       const url = `http://localhost:${listenPort}${req.url ?? '/'}`;
       const headers: Record<string, string> = {};
@@ -249,9 +333,15 @@ const serveCommand = new Command('serve')
       }
 
       try {
+        // Serve a static asset when the path looks like a file and exists under
+        // the static root (path-traversal-guarded). Falls through to SSR otherwise.
+        if (staticRoot && (req.method === 'GET' || req.method === 'HEAD')) {
+          const served = await tryServeStatic(staticRoot, new URL(url).pathname, req.method, res);
+          if (served) return;
+        }
+
         // If the App returns a raw HTML string, use the edge-adapter path.
-        const maybeString = typeof App === 'function' ? App({ path: '/', params: {} }) : null;
-        if (typeof maybeString === 'string') {
+        if (isStringApp) {
           const response = await handler({ url, method: req.method ?? 'GET', headers });
           for (const [k, v] of Object.entries(response.headers)) res.setHeader(k, String(v));
           res.statusCode = response.status;

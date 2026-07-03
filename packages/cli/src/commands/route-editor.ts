@@ -1,6 +1,6 @@
 /**
  * `jorvel route-editor` — emits a single self-contained HTML file that lets
- * users drag remotes onto a route tree and export an `mfjs.routes.host.json`
+ * users drag remotes onto a route tree and export an `jorvel.routes.host.json`
  * (or `jorvel.routes.host.json`) update.
  *
  * The transform layer is pure JS — testable without a browser. The HTML
@@ -10,6 +10,7 @@
 import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'fs-extra';
+import { findHostApp } from '../discovery.js';
 import kleur from 'kleur';
 
 export interface HostRouteEntry {
@@ -215,16 +216,30 @@ export interface RouteEditorScaffoldOptions {
   force?: boolean;
 }
 
+/**
+ * Locate the host's route manifest without hardcoding `apps/shell`. Falls back
+ * to `apps/shell/jorvel.routes.host.json` when no host app is discoverable
+ * (e.g. an empty workspace) so the editor still scaffolds against a sane path.
+ */
+async function defaultHostManifestPath(cwd: string): Promise<string> {
+  try {
+    const host = await findHostApp(cwd);
+    if (host) return path.join(host.dir, 'jorvel.routes.host.json');
+  } catch {
+    /* multiple-hosts or read error — fall through to the default */
+  }
+  return path.resolve(cwd, path.join('apps', 'shell', 'jorvel.routes.host.json'));
+}
+
 export async function scaffoldRouteEditor(opts: RouteEditorScaffoldOptions): Promise<{
   htmlPath: string;
   manifest: HostRoutesManifest;
   written: boolean;
 }> {
   const cwd = path.resolve(opts.cwd);
-  const manifestPath = path.resolve(
-    cwd,
-    opts.manifest ?? path.join('apps', 'shell', 'jorvel.routes.host.json'),
-  );
+  const manifestPath = opts.manifest
+    ? path.resolve(cwd, opts.manifest)
+    : await defaultHostManifestPath(cwd);
   let manifest: HostRoutesManifest = { routes: [] };
   if (await fs.pathExists(manifestPath)) {
     manifest = (await fs.readJson(manifestPath)) as HostRoutesManifest;

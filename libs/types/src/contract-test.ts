@@ -100,7 +100,7 @@ export async function assertContract(
 
 /**
  * Generate a TypeScript source string for a scaffolded vitest contract test.
- * Used by `mfjs generate contract-test` to drop a starting file into a host
+ * Used by `jorvel generate contract-test` to drop a starting file into a host
  * package. The generated file imports the contract and a loader the user
  * implements (`loadContainer()`).
  */

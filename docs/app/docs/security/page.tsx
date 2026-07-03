@@ -51,6 +51,39 @@ const policy = buildCsp({
         whenever a nonce is set.
       </Callout>
 
+      <Callout variant="info" title="img-src is locked down by default">
+        The baseline <code>img-src</code> is <code>'self' data:</code> — not a blanket{' '}
+        <code>https:</code>. Add any image CDNs explicitly via{' '}
+        <code>{`extra: { 'img-src': ["'self'", 'data:', 'https://images.acme.com'] }`}</code>.
+      </Callout>
+
+      <h2 id="headers">Security headers kit</h2>
+      <p>
+        <code>securityHeaders()</code> returns a secure-by-default header map you spread into any
+        response — the edge adapter&apos;s <code>headers</code> option, the node adapter, or a Worker{' '}
+        <code>Response</code>. It covers HSTS, <code>X-Content-Type-Options</code>,{' '}
+        <code>X-Frame-Options</code>, <code>Referrer-Policy</code>, <code>Permissions-Policy</code>, and
+        the Cross-Origin-* trio. Set CSP separately (via <code>buildCsp</code>) so it can carry a
+        per-request nonce.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { securityHeaders, buildCsp } from '@jorvel/security';
+import { createEdgeAdapter } from '@jorvel/ssr';
+
+export default createEdgeAdapter({
+  App, template, routes,
+  headers: securityHeaders(),          // HSTS, nosniff, Referrer-Policy, COOP/CORP, …
+  csp: () => buildCsp({}, { nonce: generateNonce() }),
+});`}
+      />
+      <Callout variant="warn" title="Cross-origin MFE defaults">
+        <code>Cross-Origin-Resource-Policy</code> defaults to <code>cross-origin</code> (a host fetches{' '}
+        <code>remoteEntry.js</code> cross-origin; <code>same-origin</code> would block it), and{' '}
+        <code>Cross-Origin-Embedder-Policy</code> is OFF by default (<code>require-corp</code> blocks
+        cross-origin remotes unless every one sends CORP/CORS). Opt into stricter values deliberately.
+      </Callout>
+
       <h2 id="csp-middleware">CSP middleware</h2>
       <p>
         Drop a per-request nonce into your Express/Connect/Fastify server with{' '}
@@ -108,11 +141,20 @@ export default async function fetch(req) {
         The default store evicts least-recently-used keys above <code>maxKeys</code>. Pass a custom{' '}
         <code>store</code> (Redis, KV) for multi-instance deployments.
       </Callout>
+      <Callout variant="warn" title="The default key trusts X-Forwarded-For">
+        With no <code>keyFor</code>, the guard keys on the <strong>first</strong>{' '}
+        <code>x-forwarded-for</code> hop. That header is client-spoofable unless you sit behind a
+        trusted proxy — for untrusted ingress, pass <code>keyFor</code> using your platform&apos;s
+        verified client IP (e.g. <code>request.cf?.ip</code>, <code>x-real-ip</code>) so an attacker
+        can&apos;t rotate the key per request.
+      </Callout>
 
       <h2 id="audit-log">Audit log</h2>
       <p>
         Track auth/admin actions with <code>AuditLogger</code>. Sensitive fields in{' '}
         <code>metadata</code> (passwords, tokens, cookies) are scrubbed before sinks see them.
+        Redacted keys are matched <strong>case-insensitively</strong>, so{' '}
+        <code>apiKey</code>, <code>ApiKey</code>, and <code>APIKEY</code> are all replaced.
       </p>
       <CodeBlock
         language="ts"
@@ -176,6 +218,28 @@ const { entries, failures } = await computeSriForManifest(
 
 // Then patch the shell:
 const html = injectSriIntoHtml(template, entries, { match: 'basename' });`}
+      />
+
+      <h3 id="sri-enforce">Enforcing SRI at load time</h3>
+      <p>
+        Once a remote carries an <code>integrity</code> hash, the browser refuses to run mismatched
+        bytes. To make that <em>mandatory</em>, pass <code>requireIntegrity</code> to{' '}
+        <code>loadRemoteEntry</code>/<code>loadRemoteModule</code> — a remote with no hash is rejected{' '}
+        <strong>before</strong> any <code>{`<script>`}</code> is injected, so a tampered or typo&apos;d
+        entry URL can never run unverified code. The loader also rejects an{' '}
+        <code>integrity</code> hash combined with <code>crossOrigin: &apos;none&apos;</code>, since the
+        browser skips SRI checks on no-CORS scripts and would silently run the bytes anyway.
+      </p>
+
+      <CodeBlock
+        language="ts"
+        code={`import { loadRemoteModule } from '@jorvel/runtime';
+
+const mod = await loadRemoteModule(
+  { name: 'dashboard', entryUrl: '...', integrity: 'sha384-...' }, // stamp from the SRI manifest
+  './App',
+  { requireIntegrity: true }, // fail closed if integrity is missing
+);`}
       />
 
       <h2 id="sandbox">Sandboxed remotes</h2>
@@ -296,7 +360,9 @@ list.allows('https://acme.com/x.js');             // false (single-label needs s
 
       <p>
         Nonces are validated against <code>/^[A-Za-z0-9_-]+$/</code> before being baked into the CSP
-        — corrupted or forgotten nonces throw rather than silently producing an invalid policy.
+        — corrupted or forgotten nonces throw rather than silently producing an invalid policy.{' '}
+        <code>generateNonce()</code> <strong>throws</strong> when Web Crypto is unavailable; it never
+        falls back to an insecure <code>Math.random()</code> source.
       </p>
 
       <h2 id="safe-json">Safe state hydration</h2>

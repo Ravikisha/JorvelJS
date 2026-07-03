@@ -16,7 +16,7 @@ import type { StorybookConfig } from '@storybook/react-vite';
 
 const config: StorybookConfig = {
   framework: '@storybook/react-vite',
-  stories: ['../libs/ui/src/**/*.stories.@(ts|tsx)'],
+  stories: ['../libs/ui/stories/**/*.stories.@(ts|tsx)'],
   addons: ['@storybook/addon-essentials', '@storybook/addon-a11y'],
   docs: { autodocs: 'tag' },
 };
@@ -39,7 +39,7 @@ export const parameters = {
 `;
 
 const BUTTON_STORY = `import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from '../src/Button.js';
+import { Button } from '../src/Button';
 
 const meta = {
   title: 'Primitives/Button',
@@ -58,7 +58,7 @@ export const Ghost: StoryObj<typeof meta> = { args: { children: 'More', variant:
 `;
 
 const INPUT_STORY = `import type { Meta, StoryObj } from '@storybook/react';
-import { Input } from '../src/Input.js';
+import { Input } from '../src/Input';
 
 const meta = {
   title: 'Primitives/Input',
@@ -78,7 +78,7 @@ export const Invalid: StoryObj<typeof meta> = {
 `;
 
 const CARD_STORY = `import type { Meta, StoryObj } from '@storybook/react';
-import { Card } from '../src/Card.js';
+import { Card } from '../src/Card';
 
 const meta = {
   title: 'Primitives/Card',
@@ -97,8 +97,8 @@ export const Elevated: StoryObj<typeof meta> = {
 
 const MODAL_STORY = `import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { Modal } from '../src/Modal.js';
-import { Button } from '../src/Button.js';
+import { Modal } from '../src/Modal';
+import { Button } from '../src/Button';
 
 const meta = {
   title: 'Primitives/Modal',
@@ -125,7 +125,7 @@ export const Toggle: StoryObj<typeof meta> = {
 `;
 
 const TOAST_STORY = `import type { Meta, StoryObj } from '@storybook/react';
-import { Button, ToastProvider, useToast } from '../src/index.js';
+import { Button, ToastProvider, useToast } from '../src/index';
 
 const meta = {
   title: 'Primitives/Toast',

@@ -152,6 +152,35 @@ describe('renderFragmentsToReadableStream', () => {
     expect(out).toContain('window.__jorvelFragment("hi")');
   });
 
+  it('sanitizes a name with non-selector chars consistently (placeholder attr == swap id)', async () => {
+    // Regression: the placeholder attr kept the raw name while the runtime
+    // queried the sanitized id, so dotted/colon names never swapped.
+    const { stream, done } = renderFragmentsToReadableStream({
+      shell: '<a><jorvel-fragment name="cart.summary"/></a>',
+      fragments: [{ name: 'cart.summary', render: async () => '<p>$1</p>' }],
+    });
+    const out = await collect(stream);
+    await done;
+    // Both the placeholder attribute and the swap call use the SAME sanitized id.
+    expect(out).toContain('<jorvel-fragment name="cart_summary">');
+    expect(out).toContain('id="jorvel-frag-data-cart_summary"');
+    expect(out).toContain('window.__jorvelFragment("cart_summary")');
+  });
+
+  it('applies a CSP nonce to the runtime + swap scripts when provided', async () => {
+    const { stream, done } = renderFragmentsToReadableStream({
+      shell: '<a><jorvel-fragment name="hi"/></a>',
+      fragments: [{ name: 'hi', render: async () => '<h1>HI</h1>' }],
+      nonce: 'abc123',
+    });
+    const out = await collect(stream);
+    await done;
+    expect(out).toContain('data-jorvel-fragments nonce="abc123"');
+    expect(out).toContain('<script nonce="abc123">window.__jorvelFragment("hi")');
+    // The inert data template does not need (and must not require) a nonce.
+    expect(out).toContain('id="jorvel-frag-data-hi" type="text/template"');
+  });
+
   it('escapes </script> inside fragment HTML', async () => {
     const malicious = '<p>boom</p></script><script>alert(1)</script>';
     const { stream } = renderFragmentsToReadableStream({

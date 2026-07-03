@@ -1,9 +1,17 @@
 name = "jorvel-shell"
 main = "dist/worker.js"
 compatibility_date = "2025-01-01"
+# The JORVEL worker entry (@jorvel/adapter-cloudflare) is free of Node builtins,
+# so `nodejs_compat` is intentionally NOT required.
 
 [build]
 command = "pnpm build"
+
+# Serve the host's built client bundle as static assets. Requests that don't
+# match an asset fall through to the worker (`main`) for SSR.
+[assets]
+directory = "./apps/shell/dist"
+binding = "ASSETS"
 
 [[routes]]
 pattern = "example.com/*"

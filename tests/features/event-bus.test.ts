@@ -30,10 +30,11 @@ describe('EventBus', () => {
   });
 
   it('replays the last event to a late subscriber', () => {
-    const bus = new EventBus<Events>({ replay: ['shell:ready'] });
+    const bus = new EventBus<Events>();
     bus.emit('shell:ready', { ts: 5 });
     const spy = vi.fn();
-    bus.on('shell:ready', spy);
+    // replay is opted into per-subscription, not via a constructor option.
+    bus.on('shell:ready', spy, { replay: true });
     expect(spy).toHaveBeenCalledWith({ ts: 5 });
   });
 
@@ -48,7 +49,7 @@ describe('EventBus', () => {
 
   it('per-bus error handler catches handler exceptions', () => {
     const onError = vi.fn();
-    const bus = new EventBus<Events>({ onError });
+    const bus = new EventBus<Events>({ errorHandler: onError });
     bus.on('shell:ready', () => {
       throw new Error('boom');
     });

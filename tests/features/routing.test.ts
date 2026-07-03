@@ -28,8 +28,8 @@ describe('routing', () => {
     expect(r?.target.remote).toBe('dashboard');
   });
 
-  it('returns undefined when no route matches', () => {
-    expect(resolveRoute(ROUTES, '/no-such-path')).toBeUndefined();
+  it('returns null when no route matches', () => {
+    expect(resolveRoute(ROUTES, '/no-such-path')).toBeNull();
   });
 
   it('exact static route wins over dynamic param', () => {

@@ -43,7 +43,23 @@ export function safeJsonForScript(value: unknown): string {
 const SAFE_PATHNAME = /^\/[A-Za-z0-9\-._~!$&'()*+,;=:@/%?#]*$/;
 
 export function isSafePathname(p: string): boolean {
-  return SAFE_PATHNAME.test(p) && !p.includes('..');
+  if (!SAFE_PATHNAME.test(p)) return false;
+  // Reject traversal in BOTH raw and (repeatedly) decoded forms — `%2e%2e` (and
+  // double-encoded `%252e%252e`) decode to `..` and would otherwise slip past a
+  // literal `!p.includes('..')` check.
+  let cur = p;
+  for (let i = 0; i < 3; i++) {
+    if (cur.includes('..')) return false;
+    let next: string;
+    try {
+      next = decodeURIComponent(cur);
+    } catch {
+      return false; // malformed escape — treat as unsafe
+    }
+    if (next === cur) break;
+    cur = next;
+  }
+  return !cur.includes('..');
 }
 
 const FORBIDDEN_KEYS = new Set(['__proto__', 'prototype', 'constructor']);

@@ -2,37 +2,29 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildSchemas, writeSchemas, validateAgainst } from '../src/commands/schema.js';
+import { buildSchemas, writeSchemas } from '../src/commands/schema.js';
+
+// `jorvel schema` now RE-SOURCES the authoritative schemas from @jorvel/types
+// rather than hand-building a second (contradictory) set.
 
 describe('buildSchemas', () => {
-  it('emits the four canonical schemas with $id pinned to baseUrl', () => {
-    const cat = buildSchemas('https://x.test/schemas');
-    expect(Object.keys(cat).sort()).toEqual([
-      'jorvel.app', 'jorvel.config', 'jorvel.federation', 'jorvel.ssr',
-    ]);
-    expect(cat['jorvel.config']!.$id).toBe('https://x.test/schemas/jorvel.config.json');
-    expect(cat['jorvel.app']!.$id).toBe('https://x.test/schemas/jorvel.app.json');
-    expect(cat['jorvel.federation']!.$id).toBe('https://x.test/schemas/jorvel.federation.json');
-    expect(cat['jorvel.ssr']!.$id).toBe('https://x.test/schemas/jorvel.ssr.json');
+  it('emits the three authoritative schemas re-sourced from @jorvel/types', () => {
+    const cat = buildSchemas();
+    expect(Object.keys(cat).sort()).toEqual(['jorvel.app', 'jorvel.config', 'jorvel.federation']);
   });
 
-  it('uses Draft 2020-12 for every schema', () => {
+  it('app schema requires name + type + port (the REAL shape, not the old `kind`)', () => {
     const cat = buildSchemas();
-    for (const s of Object.values(cat)) {
-      expect(s.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
-    }
+    const app = cat['jorvel.app']!;
+    expect(app.required).toEqual(['name', 'type', 'port']);
+    // The old hand-written schema used `kind`; the authoritative one uses `type`.
+    expect((app.properties as Record<string, unknown>)['type']).toBeDefined();
+    expect((app.properties as Record<string, unknown>)['kind']).toBeUndefined();
   });
 
-  it('app schema requires name + kind, rejects unknown fields', () => {
+  it('config schema matches the file @jorvel/types ships (same $id)', () => {
     const cat = buildSchemas();
-    expect(cat['jorvel.app']!.required).toEqual(['name', 'kind']);
-    expect(cat['jorvel.app']!.additionalProperties).toBe(false);
-  });
-
-  it('federation schema enforces an sri-shaped integrity pattern', () => {
-    const cat = buildSchemas();
-    const remoteItem = (cat['jorvel.federation']!.properties.remotes as { items: { properties: Record<string, { pattern?: string }> } }).items.properties;
-    expect(remoteItem.integrity!.pattern).toMatch(/^\^sha\(256/);
+    expect(cat['jorvel.config']!.$id).toBe('https://jorveljs.vercel.app/schemas/jorvel.config.json');
   });
 });
 
@@ -41,16 +33,16 @@ describe('writeSchemas', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jorvel-schemas-'));
     try {
       const { files } = writeSchemas({ outDir: tmp });
-      expect(files).toHaveLength(4);
+      expect(files).toHaveLength(3);
       const content = fs.readFileSync(path.join(tmp, 'jorvel.config.json'), 'utf8');
       expect(content.endsWith('\n')).toBe(true);
-      expect(content).toContain('  "title": "JORVEL workspace config"');
+      expect(content).toContain('"title": "JORVEL Workspace Config"');
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
   });
 
-  it('honors pretty=false (no indent, no trailing whitespace)', () => {
+  it('honors pretty=false (no indent)', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jorvel-schemas-'));
     try {
       writeSchemas({ outDir: tmp, pretty: false });
@@ -66,7 +58,7 @@ describe('writeSchemas', () => {
     try {
       const nested = path.join(tmp, 'nested', 'dir');
       writeSchemas({ outDir: nested });
-      expect(fs.existsSync(path.join(nested, 'jorvel.ssr.json'))).toBe(true);
+      expect(fs.existsSync(path.join(nested, 'jorvel.config.json'))).toBe(true);
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
@@ -77,66 +69,12 @@ describe('writeSchemas', () => {
     try {
       const result = writeSchemas({
         outDir: tmp,
-        catalog: {
-          stub: {
-            $schema: 'x', $id: 'x', title: 't', type: 'object',
-            properties: {}, additionalProperties: false,
-          },
-        },
+        catalog: { stub: { $id: 'x', title: 't', type: 'object', properties: {} } },
       });
       expect(result.files).toHaveLength(1);
       expect(result.files[0]!.name).toBe('stub');
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
-  });
-});
-
-describe('validateAgainst', () => {
-  const cat = buildSchemas();
-
-  it('passes a well-formed jorvel.app doc', () => {
-    const r = validateAgainst(cat['jorvel.app']!, { name: 'shop', kind: 'host' });
-    expect(r.ok).toBe(true);
-    expect(r.errors).toEqual([]);
-  });
-
-  it('flags missing required keys', () => {
-    const r = validateAgainst(cat['jorvel.app']!, { name: 'shop' });
-    expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => /kind/.test(e.message))).toBe(true);
-  });
-
-  it('flags unknown properties when additionalProperties=false', () => {
-    const r = validateAgainst(cat['jorvel.app']!, { name: 'shop', kind: 'host', typo: true });
-    expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => /typo/.test(e.message))).toBe(true);
-  });
-
-  it('flags wrong type for a property', () => {
-    const r = validateAgainst(cat['jorvel.app']!, { name: 'shop', kind: 'host', port: 'eighty' });
-    expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => e.pointer === '/port')).toBe(true);
-  });
-
-  it('flags out-of-enum values', () => {
-    const r = validateAgainst(cat['jorvel.app']!, { name: 'shop', kind: 'something-else' });
-    expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => /enum/.test(e.message))).toBe(true);
-  });
-
-  it('rejects non-object docs', () => {
-    expect(validateAgainst(cat['jorvel.app']!, null).ok).toBe(false);
-    expect(validateAgainst(cat['jorvel.app']!, ['array']).ok).toBe(false);
-    expect(validateAgainst(cat['jorvel.app']!, 42 as unknown).ok).toBe(false);
-  });
-
-  it('allows $schema even with additionalProperties=false', () => {
-    const r = validateAgainst(cat['jorvel.app']!, {
-      $schema: 'https://jorveljs.vercel.app/schemas/jorvel.app.json',
-      name: 'shop',
-      kind: 'host',
-    });
-    expect(r.ok).toBe(true);
   });
 });

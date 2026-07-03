@@ -28,8 +28,7 @@ export const buildCommand = new Command('build')
   .option('-d, --dir <path>', 'Workspace root directory', process.cwd())
   .option(
     '--compress',
-    'After building each app, generate .gz and .br assets in dist/ (defaults: JS/CSS/HTML/SVG/JSON/XML/TXT/MAP)',
-    false,
+    'After building each app, generate .gz and .br assets in dist/ (defaults: JS/CSS/HTML/SVG/JSON/XML/TXT/MAP). Defaults to build.compress in jorvel.config.',
   )
   .option(
     '--no-compress',
@@ -46,6 +45,8 @@ export const buildCommand = new Command('build')
     false,
   )
   .option('--allow-empty', 'Exit 0 even when no apps are present.', false)
+  .option('--app <names>', 'Comma-separated app names to build (others skipped).')
+  .option('--parallel', 'Build apps concurrently (they are independent — federation is resolved at runtime).', false)
   .option(
     '--stats [path]',
     'Write a JSON build-stats summary (default path: jorvel-build-stats.json under the workspace root).',
@@ -57,6 +58,8 @@ export const buildCommand = new Command('build')
       compressInclude: string;
       compressDeleteOriginal: boolean;
       allowEmpty: boolean;
+      app?: string;
+      parallel?: boolean;
       stats?: boolean | string;
     }) => {
       const workspaceDir = path.resolve(opts.dir);
@@ -71,7 +74,7 @@ export const buildCommand = new Command('build')
       const compressEnabled = opts.compress ?? cfg.build?.compress ?? false;
 
       const appFolders = (await fs.readdir(appsDir)).filter((f) => !f.startsWith('.'));
-      const appMetas: Array<{ dir: string; meta: AppMeta }> = [];
+      let appMetas: Array<{ dir: string; meta: AppMeta }> = [];
 
       for (const folder of appFolders) {
         const metaPath = path.join(appsDir, folder, 'jorvel.app.json');
@@ -80,12 +83,18 @@ export const buildCommand = new Command('build')
         appMetas.push({ dir: path.join(appsDir, folder), meta });
       }
 
+      // --app filter.
+      const onlyApps = opts.app
+        ? opts.app.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      if (onlyApps.length) appMetas = appMetas.filter((a) => onlyApps.includes(a.meta.name));
+
       if (appMetas.length === 0) {
         if (opts.allowEmpty) {
           console.log(kleur.yellow('No apps found — exiting cleanly (--allow-empty).'));
           return;
         }
-        console.error(kleur.yellow('No apps found (missing jorvel.app.json).'));
+        console.error(kleur.yellow('No apps found (missing jorvel.app.json, or none matched --app).'));
         process.exitCode = 2;
         return;
       }
@@ -94,7 +103,7 @@ export const buildCommand = new Command('build')
         (a.meta.type === 'host' ? -1 : 1) - (b.meta.type === 'host' ? -1 : 1),
       );
 
-      console.log(kleur.cyan(`Building ${sorted.length} app(s)...`));
+      console.log(kleur.cyan(`Building ${sorted.length} app(s)${opts.parallel ? ' in parallel' : ''}...`));
 
       const ac = new AbortController();
       const onSig = (sig: NodeJS.Signals) => {
@@ -104,27 +113,24 @@ export const buildCommand = new Command('build')
       process.once('SIGINT', () => onSig('SIGINT'));
       process.once('SIGTERM', () => onSig('SIGTERM'));
 
-      for (const app of sorted) {
+      const includeExts = opts.compressInclude
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      // Build (and optionally compress) one app. Returns false on failure.
+      const buildApp = async (app: { dir: string; meta: AppMeta }): Promise<boolean> => {
         console.log(kleur.gray(`- ${app.meta.type} ${app.meta.name}`));
         try {
           await runBuild(app.dir, ac.signal);
         } catch (err) {
-          process.exitCode = 1;
           console.error(kleur.red(`Build failed in ${app.meta.name}: ${(err as Error).message}`));
-          return;
+          return false;
         }
-
         if (compressEnabled) {
           const distDir = path.join(app.dir, 'dist');
-          const includeExts = opts.compressInclude
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean);
-
           if (!(await fs.pathExists(distDir))) {
-            console.log(
-              kleur.yellow(`  compress: skipping (missing ${path.relative(workspaceDir, distDir)})`),
-            );
+            console.log(kleur.yellow(`  compress: skipping ${app.meta.name} (missing ${path.relative(workspaceDir, distDir)})`));
           } else {
             const result = await compressDist(distDir, {
               includeExts,
@@ -132,9 +138,25 @@ export const buildCommand = new Command('build')
             });
             console.log(
               kleur.gray(
-                `  compress: wrote ${result.written} file(s) (${result.gzWritten} gz, ${result.brWritten} br), skipped ${result.skipped}`,
+                `  compress: ${app.meta.name} wrote ${result.written} file(s) (${result.gzWritten} gz, ${result.brWritten} br), skipped ${result.skipped}`,
               ),
             );
+          }
+        }
+        return true;
+      };
+
+      if (opts.parallel) {
+        const results = await Promise.all(sorted.map((app) => buildApp(app)));
+        if (results.some((ok) => !ok)) {
+          process.exitCode = 1;
+          return;
+        }
+      } else {
+        for (const app of sorted) {
+          if (!(await buildApp(app))) {
+            process.exitCode = 1;
+            return;
           }
         }
       }

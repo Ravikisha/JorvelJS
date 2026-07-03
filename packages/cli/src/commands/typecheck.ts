@@ -45,7 +45,6 @@ async function findTypecheckablePackages(workspaceDir: string): Promise<string[]
 
 async function typecheckPackage(
   packageDir: string,
-  tscBin: string
 ): Promise<{ dir: string; ok: boolean; output: string }> {
   // Prefer the `typecheck` script from package.json; fall back to tsc --noEmit.
   const pkgJsonPath = path.join(packageDir, 'package.json');
@@ -58,39 +57,21 @@ async function typecheckPackage(
     if (pkg.scripts?.['typecheck']) useScript = true;
   }
 
+  // Run tsc via `pnpm exec` rather than the .bin/tsc sh-shim: the shim isn't
+  // executable on Windows, and spawning `tsc.cmd` with shell:false would EINVAL
+  // on Node >=20.12. pnpm resolves the local tsc cross-platform.
+  const args = useScript ? ['run', 'typecheck'] : ['exec', 'tsc', '--noEmit'];
+
   try {
-    if (useScript) {
-      await execa('pnpm', ['run', 'typecheck'], {
-        cwd: packageDir,
-        reject: true,
-      });
-    } else {
-      await execa(tscBin, ['--noEmit'], {
-        cwd: packageDir,
-        reject: true,
-      });
-    }
+    await execa('pnpm', args, { cwd: packageDir, reject: true });
     return { dir: pkgName, ok: true, output: '' };
   } catch (err) {
-    const output =
-      err instanceof Error && 'stderr' in err
-        ? String((err as { stderr?: string }).stderr ?? '')
-        : String(err);
+    // tsc writes diagnostics to STDOUT (not stderr) — capture both, else the
+    // user sees a red ✗ with no detail.
+    const e = err as { stdout?: string; stderr?: string };
+    const output = [e?.stdout, e?.stderr].filter(Boolean).join('\n').trim() || String(err);
     return { dir: pkgName, ok: false, output };
   }
-}
-
-async function findTscBin(workspaceDir: string): Promise<string> {
-  // Walk up from workspace to find a pnpm-hoisted tsc binary.
-  const candidates = [
-    path.join(workspaceDir, 'node_modules', '.bin', 'tsc'),
-    path.join(workspaceDir, '..', 'node_modules', '.bin', 'tsc'),
-    'tsc',
-  ];
-  for (const c of candidates) {
-    if (await fs.pathExists(c)) return c;
-  }
-  return 'tsc'; // let PATH resolve it
 }
 
 export const typecheckCommand = new Command('typecheck')
@@ -101,7 +82,6 @@ export const typecheckCommand = new Command('typecheck')
   .option('--fail-fast', 'Stop after the first package with type errors', false)
   .action(async (opts: { dir: string; failFast: boolean }) => {
     const workspaceDir = path.resolve(opts.dir);
-    const tscBin = await findTscBin(workspaceDir);
 
     const packages = await findTypecheckablePackages(workspaceDir);
 
@@ -118,7 +98,7 @@ export const typecheckCommand = new Command('typecheck')
       const label = path.relative(workspaceDir, pkg) || path.basename(pkg);
       process.stdout.write(`  ${label} … `);
 
-      const result = await typecheckPackage(pkg, tscBin);
+      const result = await typecheckPackage(pkg);
 
       if (result.ok) {
         console.log(kleur.green('✓'));

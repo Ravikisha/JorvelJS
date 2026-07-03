@@ -79,12 +79,6 @@ export default {
   experiments: {
     css: true,
   },
-  // Expose selected env vars to the client via import.meta.env
-  builtins: {
-    define: {
-      'import.meta.env.JORVEL_FEDERATION_FILE': JSON.stringify(process.env.JORVEL_FEDERATION_FILE || ''),
-    },
-  },
   devServer: {
     port: 3000,
     static: [

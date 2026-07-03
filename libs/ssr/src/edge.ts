@@ -63,6 +63,29 @@ export {
   type HtmlCacheEntry,
   type LruHtmlCacheOptions,
 } from './html-cache.js';
+export {
+  serveWithISR,
+  awaitIsrRevalidation,
+  type ServeIsrOptions,
+  type ServeIsrResult,
+  type IsrRenderResult,
+} from './isr.js';
+export {
+  defineRoute,
+  createApiRouter,
+  type HttpMethod,
+  type RouteContext,
+  type RouteHandler,
+  type RouteDef,
+  type ApiRouter,
+  type CreateApiRouterOptions,
+} from './server-routes.js';
+export {
+  extractCriticalCss,
+  inlineCriticalCss,
+  type CriticalCssResult,
+  type InlineCriticalOptions,
+} from './critical-css.js';
 export { ssrLoadRemoteEdge, type SsrEdgeRemoteMap } from './remote-ssr.js';
 export {
   renderFragmentsToString,

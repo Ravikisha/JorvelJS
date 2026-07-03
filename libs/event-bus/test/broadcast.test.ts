@@ -6,7 +6,7 @@ import { connectBroadcast } from '../src/broadcast.js';
 // Real BroadcastChannel needs a browser. We model a per-name hub that fans
 // messages out to every listener except the one that posted.
 
-interface Listener {
+type Listener = {
   ref: { handler: (ev: { data: unknown }) => void };
   channel: FakeChannel;
 }
@@ -64,7 +64,7 @@ afterEach(() => hubs.clear());
 
 describe('connectBroadcast', () => {
   it('mirrors emissions to other buses on the same channel', () => {
-    interface E { ping: { n: number } }
+    type E = { ping: { n: number } };
     const a = new EventBus<E>();
     const b = new EventBus<E>();
     connectBroadcast(a, { channelName: 'c1', channelFactory: factory });
@@ -78,7 +78,7 @@ describe('connectBroadcast', () => {
   });
 
   it('does not echo back to the originating bus', () => {
-    interface E { x: number }
+    type E = { x: number };
     const a = new EventBus<E>();
     connectBroadcast(a, { channelName: 'c2', channelFactory: factory });
 
@@ -91,7 +91,7 @@ describe('connectBroadcast', () => {
   });
 
   it('isolates channels by name', () => {
-    interface E { z: string }
+    type E = { z: string };
     const a = new EventBus<E>();
     const b = new EventBus<E>();
     connectBroadcast(a, { channelName: 'ch-a', channelFactory: factory });
@@ -105,7 +105,7 @@ describe('connectBroadcast', () => {
   });
 
   it('filter:false skips an event from cross-tab sync', () => {
-    interface E { keep: number; skip: number }
+    type E = { keep: number; skip: number };
     const a = new EventBus<E>();
     const b = new EventBus<E>();
     connectBroadcast(a, {
@@ -128,7 +128,7 @@ describe('connectBroadcast', () => {
   });
 
   it('disconnect stops further mirroring', () => {
-    interface E { y: number }
+    type E = { y: number };
     const a = new EventBus<E>();
     const b = new EventBus<E>();
     const conn = connectBroadcast(a, { channelName: 'c4', channelFactory: factory });
@@ -147,7 +147,6 @@ describe('connectBroadcast', () => {
 
   it('throws when BroadcastChannel global missing and no factory passed', () => {
     const orig = (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel;
-    // @ts-expect-error remove global
     delete (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel;
     try {
       const bus = new EventBus();
@@ -160,7 +159,7 @@ describe('connectBroadcast', () => {
   });
 
   it('ignores malformed inbound messages', () => {
-    interface E { ev: string }
+    type E = { ev: string };
     const a = new EventBus<E>();
     connectBroadcast(a, { channelName: 'c5', channelFactory: factory });
     const cb = vi.fn();

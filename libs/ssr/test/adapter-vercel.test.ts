@@ -10,11 +10,8 @@ import React from 'react';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {
-  createVercelHandler,
-  scaffoldDeploy,
-  vercelConfig,
-} from '../../adapter-vercel/src/index.js';
+import { createVercelHandler, vercelConfig } from '../../adapter-vercel/src/index.js';
+import { scaffoldDeploy } from '../../adapter-vercel/src/deploy.js';
 import type { SsrRoute } from '../src/types.js';
 
 function App() {
@@ -56,6 +53,21 @@ describe('createVercelHandler', () => {
     });
     const res = await fetch(new Request('https://x/'));
     expect(res.headers.get('x-jorvel')).toBe('1');
+  });
+
+  it('returns a 304 (not a 500) on a matching If-None-Match', async () => {
+    // Regression: a 304 carries no body, and `new Response('', { status: 304 })`
+    // throws TypeError — which turned every ETag revalidation into a 500.
+    const fetch = createVercelHandler({ App, template: TEMPLATE, routes: ROUTES, etag: true });
+    const first = await fetch(new Request('https://x/'));
+    const etag = first.headers.get('etag');
+    expect(etag).toBeTruthy();
+
+    const revalidated = await fetch(
+      new Request('https://x/', { headers: { 'If-None-Match': etag! } }),
+    );
+    expect(revalidated.status).toBe(304);
+    expect(await revalidated.text()).toBe('');
   });
 });
 

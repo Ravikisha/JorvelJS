@@ -26,7 +26,9 @@ export class RemoteAllowlist {
   }
 
   isAllowed(url: string, remoteName?: string): boolean {
-    if (this.names && remoteName && !this.names.has(remoteName)) return false;
+    // When a name allowlist is configured, an unnamed lookup cannot be verified
+    // against it — reject rather than silently bypassing the name restriction.
+    if (this.names && (!remoteName || !this.names.has(remoteName))) return false;
     let parsed: URL;
     try {
       parsed = new URL(url);

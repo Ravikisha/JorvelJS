@@ -112,11 +112,13 @@ export function startRum(opts: RumOptions = {}): RumCollector {
   let timer: ReturnType<typeof setInterval> | null = null;
   let droppedSinceLastFlush = 0;
 
-  const sampleOk = () => sampleRate >= 1 || rng() < sampleRate;
+  // Sample once per session, not per event — per-event sampling shreds a session
+  // into a random subset of its own events (useless for reconstructing a trace).
+  const sessionSampled = sampleRate >= 1 || rng() < sampleRate;
 
   const enqueue = (event: RumEvent) => {
     if (disposed) return;
-    if (!sampleOk()) return;
+    if (!sessionSampled) return;
     if (opts.filter && !opts.filter(event)) return;
     if (queue.length >= maxQueueSize) {
       queue.shift();
@@ -172,8 +174,14 @@ export function startRum(opts: RumOptions = {}): RumCollector {
   const onHidden = () => {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') void flush();
   };
+  // pagehide is more reliable than visibilitychange on iOS Safari (which may not
+  // fire visibilitychange before the page is frozen/terminated).
+  const onPageHide = () => void flush();
   if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
     document.addEventListener('visibilitychange', onHidden);
+  }
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('pagehide', onPageHide);
   }
 
   return {
@@ -184,6 +192,9 @@ export function startRum(opts: RumOptions = {}): RumCollector {
     },
     dispose() {
       if (disposed) return;
+      // Flush buffered events BEFORE marking disposed — otherwise teardown
+      // silently drops everything still queued.
+      void flush();
       disposed = true;
       offError();
       offMetric();
@@ -191,6 +202,9 @@ export function startRum(opts: RumOptions = {}): RumCollector {
       if (timer) clearInterval(timer);
       if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
         document.removeEventListener('visibilitychange', onHidden);
+      }
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('pagehide', onPageHide);
       }
     },
   };

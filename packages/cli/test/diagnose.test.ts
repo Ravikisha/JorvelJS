@@ -44,6 +44,19 @@ describe('jorvel diagnose', () => {
     expect(code).toBe(0);
   });
 
+  it('fails on a port conflict between apps', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-diag-'))) as string;
+    await fs.writeJson(path.join(tmp, 'package.json'), { name: 'x', private: true });
+    await fs.writeFile(path.join(tmp, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*');
+    await fs.ensureDir(path.join(tmp, 'apps', 'shell'));
+    await fs.ensureDir(path.join(tmp, 'apps', 'dashboard'));
+    await fs.writeJson(path.join(tmp, 'apps', 'shell', 'jorvel.app.json'), { name: 'shell', type: 'host', port: 3000 });
+    await fs.writeJson(path.join(tmp, 'apps', 'dashboard', 'jorvel.app.json'), { name: 'dashboard', type: 'remote', port: 3000 });
+    const code = await run(['--cwd', tmp], tmp);
+    expect(code).toBe(1);
+  });
+
   it('lists discovered apps', async () => {
     const logs: string[] = [];
     vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {

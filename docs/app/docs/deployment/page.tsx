@@ -258,6 +258,15 @@ CMD ["node", "apps/shell/dist/server.js"]`}
         </TabsContent>
       </Tabs>
 
+      <h2 id="github-pages">GitHub Pages (static export)</h2>
+      <p>
+        For a static-export site (SPA host + prebuilt remotes on the same origin),{' '}
+        <code>jorvel deploy --target github-pages</code> emits a Pages deploy workflow +{' '}
+        <code>.nojekyll</code>. Enable Pages (Settings → Pages → Source: GitHub Actions) and push to{' '}
+        <code>main</code>. For a project page, set a base path: <code>jorvel build --base /&lt;repo&gt;/</code>.
+      </p>
+      <CodeBlock language="bash" code={`jorvel deploy --target github-pages\n# writes .github/workflows/pages.yml + apps/<host>/dist/.nojekyll`} />
+
       <h2 id="cdn">Putting remotes on a CDN</h2>
       <p>
         Each remote app is a self-contained bundle under <code>apps/&lt;name&gt;/dist/</code>.
@@ -267,14 +276,14 @@ CMD ["node", "apps/shell/dist/server.js"]`}
       </p>
 
       <CodeBlock
-        language="ts"
-        filename="jorvel.config.ts"
+        language="json"
+        filename="jorvel.config.json"
         code={`{
-  federation: {
-    publicPath: 'https://cdn.acme.com/dashboard/',
-    sri: { algo: 'sha384' },
-    allowlist: ['https://cdn.acme.com'],
-  },
+  "federation": {
+    "publicPath": "https://cdn.acme.com/dashboard/",
+    "sri": { "algo": "sha384" },
+    "allowlist": ["https://cdn.acme.com"]
+  }
 }`}
       />
 

@@ -63,6 +63,10 @@ export interface AuthorizeUrlOptions {
 export function buildAuthorizeUrl(opts: AuthorizeUrlOptions): string {
   const u = new URL(opts.authorizationEndpoint);
   const params = u.searchParams;
+  // Apply caller extras FIRST so the security-critical managed params below
+  // always win — otherwise `extras: { redirect_uri: 'https://evil' }` would
+  // override the real redirect_uri / response_type (open-redirect / flow hijack).
+  if (opts.extras) for (const [k, v] of Object.entries(opts.extras)) params.set(k, v);
   params.set('response_type', 'code');
   params.set('client_id', opts.clientId);
   params.set('redirect_uri', opts.redirectUri);
@@ -73,7 +77,6 @@ export function buildAuthorizeUrl(opts: AuthorizeUrlOptions): string {
   params.set('code_challenge', opts.codeChallenge);
   params.set('code_challenge_method', opts.codeChallengeMethod ?? 'S256');
   if (opts.nonce) params.set('nonce', opts.nonce);
-  if (opts.extras) for (const [k, v] of Object.entries(opts.extras)) params.set(k, v);
   return u.toString();
 }
 
@@ -242,6 +245,60 @@ function mergeTokens(prev: TokenSet, next: TokenSet): TokenSet {
   const expiresAt = next.expiresAt ?? prev.expiresAt;
   if (expiresAt !== undefined) out.expiresAt = expiresAt;
   return out;
+}
+
+// ── Provider presets ─────────────────────────────────────────────────────
+
+export interface ProviderPreset {
+  authorizationEndpoint: string;
+  tokenEndpoint: string;
+  /** Userinfo endpoint for fetching the profile after token exchange. */
+  userinfoEndpoint: string;
+  /** Sensible default scopes for "log in + read basic profile". */
+  defaultScope: string[];
+}
+
+/**
+ * Endpoint presets for common IDPs so callers don't hand-copy URLs. Pair with
+ * `buildAuthorizeUrl` / `exchangeCodeForTokens`. Microsoft uses the multi-tenant
+ * `common` authority — swap in your tenant id for single-tenant apps.
+ */
+export const OAUTH_PROVIDERS = {
+  github: {
+    authorizationEndpoint: 'https://github.com/login/oauth/authorize',
+    tokenEndpoint: 'https://github.com/login/oauth/access_token',
+    userinfoEndpoint: 'https://api.github.com/user',
+    defaultScope: ['read:user', 'user:email'],
+  },
+  google: {
+    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenEndpoint: 'https://oauth2.googleapis.com/token',
+    userinfoEndpoint: 'https://openidconnect.googleapis.com/v1/userinfo',
+    defaultScope: ['openid', 'email', 'profile'],
+  },
+  microsoft: {
+    authorizationEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    userinfoEndpoint: 'https://graph.microsoft.com/oidc/userinfo',
+    defaultScope: ['openid', 'email', 'profile'],
+  },
+} as const satisfies Record<string, ProviderPreset>;
+
+export type OAuthProviderName = keyof typeof OAUTH_PROVIDERS;
+
+/** Fetch the user profile with a bearer access token from a preset's userinfo endpoint. */
+export async function fetchUserInfo<T = Record<string, unknown>>(
+  provider: OAuthProviderName | { userinfoEndpoint: string },
+  accessToken: string,
+  fetcher: typeof fetch = fetch,
+): Promise<T> {
+  const endpoint =
+    typeof provider === 'string' ? OAUTH_PROVIDERS[provider].userinfoEndpoint : provider.userinfoEndpoint;
+  const res = await fetcher(endpoint, {
+    headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error(`[jorvel/security] userinfo ${res.status}`);
+  return (await res.json()) as T;
 }
 
 /** Convert a `TokenResponse` (seconds-from-now) to a `TokenSet` (absolute ms). */

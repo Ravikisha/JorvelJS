@@ -14,10 +14,16 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ['developer', 'productivity', 'utilities'],
     icons: [
       {
-        src: '/jorvel-icon.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
+        src: '/logojorvel.png',
+        sizes: '512x512',
+        type: 'image/png',
         purpose: 'any',
+      },
+      {
+        src: '/logojorvel.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
       },
       {
         src: '/favicon.ico',

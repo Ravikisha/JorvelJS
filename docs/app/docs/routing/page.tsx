@@ -70,6 +70,13 @@ export default function App() {
 }`}
       />
 
+      <Callout variant="info" title="NavLink respects modified clicks">
+        <code>NavLink</code> only intercepts plain primary-button clicks. A click with{' '}
+        <code>ctrl</code>/<code>cmd</code>/<code>shift</code>/<code>alt</code> held, or a
+        middle/non-primary button, falls through to the browser — so &quot;open in new tab&quot; and
+        &quot;open in new window&quot; work as expected.
+      </Callout>
+
       <h2>Remote pages (file-based)</h2>
       <CodeBlock
         language="text"
@@ -342,6 +349,100 @@ import { renderRouteToString } from '@jorvel/ssr';
 const ctx = createServerRouter(request.url);
 const result = await renderRouteToString(App, { path: ctx.pathname });`}
       />
+      <Callout variant="info" title="The hooks are SSR-safe">
+        <code>usePathname()</code> and <code>getRouter()</code> do not touch <code>window</code> /{' '}
+        <code>history</code> during SSR — they return the request-scoped server router, so a tree
+        rendered with <code>renderRouteToString</code> never crashes on a missing History API.
+      </Callout>
+
+      <h2 id="typed-search">Typed search params</h2>
+      <p>
+        Validate + serialize the query string through any <code>{'{ parse(input) }'}</code>-shaped
+        validator (Zod, Valibot, or hand-written — no dependency required).
+      </p>
+      <CodeBlock
+        language="tsx"
+        code={`import { parseSearchParams, buildSearchString, useTypedSearchParams } from '@jorvel/runtime';
+
+const schema = { parse: (o: Record<string,string>) => ({ tab: o.tab ?? 'home', page: Number(o.page ?? '1') }) };
+
+parseSearchParams('tab=settings&page=3', schema);   // { tab: 'settings', page: 3 }
+buildSearchString({ tab: 'x', page: 2 });            // 'tab=x&page=2'
+
+function Toolbar() {
+  const [q, setQ] = useTypedSearchParams(schema);    // reactive, SSR-safe
+  return <button onClick={() => setQ({ ...q, page: q.page + 1 })}>Next</button>;
+}`}
+      />
+
+      <h2 id="parallel-routes">Parallel routes &amp; slots</h2>
+      <p>
+        Render independent subtrees keyed by slot name (Next&apos;s <code>@modal</code>/
+        <code>@sidebar</code>), including intercepting routes that open over the current page.
+      </p>
+      <CodeBlock
+        language="tsx"
+        code={`import { defineSlots, SlotOutlet, ParallelRoutes } from '@jorvel/runtime';
+
+const slots = defineSlots({
+  modal: [{ path: '/photos/:id', element: <PhotoModal />, intercept: true }],
+  sidebar: [{ path: '/dashboard/*', element: <Sidebar /> }],
+});
+
+function Layout() {
+  return (
+    <ParallelRoutes slots={slots}>
+      <main><Outlet /></main>
+      <SlotOutlet name="sidebar" />
+      <SlotOutlet name="modal" />   {/* intercepts /photos/:id over the current page */}
+    </ParallelRoutes>
+  );
+}`}
+      />
+
+      <h2 id="redirects">redirects &amp; rewrites</h2>
+      <p>
+        Declare a <code>redirects</code> / <code>rewrites</code> block and evaluate it (in{' '}
+        <a href="/docs/middleware">middleware</a> or an adapter) with the matchers from{' '}
+        <code>@jorvel/types</code> — <code>:param</code> and <code>*</code> substitute into the
+        destination.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { matchRedirect, matchRewrite } from '@jorvel/types';
+
+const redirects = [{ source: '/old/:slug', destination: '/new/:slug', permanent: true }];
+matchRedirect(redirects, '/old/pricing');  // { destination: '/new/pricing', status: 308 }
+
+const rewrites = [{ source: '/api/*', destination: '/proxy/*' }];
+matchRewrite(rewrites, '/api/users');      // '/proxy/users'`}
+      />
+
+      <h2 id="catch-all">Catch-all &amp; optional catch-all</h2>
+      <p>
+        A trailing <code>*</code> splat captures the rest of the path. File conventions{' '}
+        <code>[...slug]</code> (catch-all) and <code>[[...slug]]</code> (optional catch-all — also
+        matches the parent) compile to a <code>*</code> route; read the tail from the wildcard param.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { matchPath } from '@jorvel/runtime';
+
+matchPath('/docs/*', '/docs/a/b/c');   // { params: { '*': 'a/b/c' } }
+// file:  src/pages/docs/[...slug].tsx      → route '/docs/*'      (requires ≥1 segment)
+// file:  src/pages/docs/[[...slug]].tsx    → routes '/docs' AND '/docs/*' (optional)
+const { '*': rest } = params;          // 'a/b/c' → split('/') for segments`}
+      />
+
+      <h2 id="route-groups">Route groups &amp; scroll restoration</h2>
+      <p>
+        Group folders like <code>(marketing)</code> / <code>(app)</code> organize files without
+        adding a URL segment — the compiler strips parenthesized segments. Scroll is restored on
+        back/forward automatically (the router preserves the browser&apos;s{' '}
+        <code>history.scrollRestoration</code>); for SPA navigations call{' '}
+        <code>window.scrollTo(0, 0)</code> in a <code>useNavigationEvents</code> handler, or key a
+        scroll container by pathname to retain per-route positions.
+      </p>
     </>
   );
 }

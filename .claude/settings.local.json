@@ -22,7 +22,10 @@
       "Bash(pnpm -r --filter \"./libs/**\" --filter \"jorvel\" build)",
       "Bash(pnpm --filter jorvel build)",
       "Bash(pnpm release *)",
-      "Bash(pnpm exec *)"
+      "Bash(pnpm exec *)",
+      "Bash(pnpm --filter jorvel test)",
+      "Bash(pnpm --filter @jorvel/event-bus test)",
+      "Bash(pnpm --filter @jorvel/adapter-node build)"
     ]
   }
 }

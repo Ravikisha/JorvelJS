@@ -11,13 +11,17 @@
  *     `Accept-Language` parsing.
  */
 
+export * from './locale-routing.js';
+export * from './locale-detection.js';
+export * from './rtl.js';
+
 export type CatalogMessages = Record<string, string>;
 export type Catalog = Record<string, CatalogMessages>;
 
 export type PluralCategory = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
 
 export interface FormatValues {
-  [k: string]: string | number | boolean | undefined | null;
+  [k: string]: string | number | boolean | Date | undefined | null;
 }
 
 /** Strip the leading region tag — `en-US` → `en`. */
@@ -40,6 +44,10 @@ function pluralCategory(locale: string, n: number): PluralCategory {
 
 const PLURAL_RE = /^([a-zA-Z_][\w]*),\s*plural,\s*([\s\S]+)$/;
 const NUMBER_RE = /^([a-zA-Z_][\w]*),\s*number(?:,\s*([a-zA-Z]+))?$/;
+// `{gender, select, male{…} female{…} other{…}}` and the generic `select`.
+const SELECT_RE = /^([a-zA-Z_][\w]*),\s*(?:select|gender),\s*([\s\S]+)$/;
+// `{when, date}` / `{when, date, short|medium|long|full}` and `time`.
+const DATE_RE = /^([a-zA-Z_][\w]*),\s*(date|time)(?:,\s*([a-zA-Z]+))?$/;
 
 function parsePluralArms(body: string): Partial<Record<PluralCategory | 'other', string>> {
   const out: Partial<Record<PluralCategory | 'other', string>> = {};
@@ -141,6 +149,34 @@ export function formatMessage(template: string, values: FormatValues = {}, local
       }
       continue;
     }
+    // `{gender, select, ...}` / `{x, select, ...}` — pick the arm by exact match.
+    const select = SELECT_RE.exec(trimmed);
+    if (select) {
+      const name = select[1]!;
+      const arms = parsePluralArms(select[2]!);
+      const key = String(values[name] ?? '');
+      const tpl = arms[key as PluralCategory] ?? arms.other ?? '';
+      out += formatMessage(tpl, values, locale);
+      continue;
+    }
+    // `{when, date}` / `{when, time}` with optional style, via Intl.
+    const date = DATE_RE.exec(trimmed);
+    if (date) {
+      const name = date[1]!;
+      const kind = date[2]!;
+      const style = date[3] as 'short' | 'medium' | 'long' | 'full' | undefined;
+      const raw = values[name];
+      const d = raw instanceof Date ? raw : new Date(raw as string | number);
+      const g = globalThis as { Intl?: typeof Intl };
+      if (!Number.isNaN(d.getTime()) && g.Intl?.DateTimeFormat) {
+        const opts: Intl.DateTimeFormatOptions =
+          kind === 'time' ? { timeStyle: style ?? 'medium' } : { dateStyle: style ?? 'medium' };
+        out += new g.Intl.DateTimeFormat(locale, opts).format(d);
+      } else {
+        out += String(raw ?? '');
+      }
+      continue;
+    }
     // Simple placeholder: `{name}`.
     const value = values[trimmed];
     out += value === undefined || value === null ? `{${trimmed}}` : String(value);
@@ -193,10 +229,24 @@ export function createI18n(opts: CreateI18nOptions): I18n {
     }
   }
 
-  async function ensureLoaded(locale: string): Promise<void> {
-    if (state.catalogs[locale] || !opts.loader) return;
-    state.catalogs[locale] = await opts.loader(locale);
+  // Dedupe concurrent loads of the same locale — without this, two overlapping
+  // setLocale('es') calls invoke the loader twice.
+  const inflight = new Map<string, Promise<void>>();
+  function ensureLoaded(locale: string): Promise<void> {
+    if (state.catalogs[locale] || !opts.loader) return Promise.resolve();
+    let p = inflight.get(locale);
+    if (!p) {
+      const loader = opts.loader;
+      p = (async () => {
+        state.catalogs[locale] = await loader(locale);
+      })().finally(() => inflight.delete(locale));
+      inflight.set(locale, p);
+    }
+    return p;
   }
+
+  // Monotonic token so a slower-resolving setLocale can't clobber a later one.
+  let setLocaleSeq = 0;
 
   return {
     get locale() {
@@ -213,7 +263,10 @@ export function createI18n(opts: CreateI18nOptions): I18n {
       return formatMessage(template, values, state.locale);
     },
     async setLocale(locale) {
+      const seq = ++setLocaleSeq;
       await ensureLoaded(locale);
+      // A newer setLocale started while we were loading — let it win.
+      if (seq !== setLocaleSeq) return;
       state.locale = locale;
       notify();
     },
@@ -231,6 +284,37 @@ export function createI18n(opts: CreateI18nOptions): I18n {
       return state.catalogs;
     },
   };
+}
+
+// ── Shared singleton ──────────────────────────────────────────────────────
+//
+// Pinned to globalThis so the host and every remote that calls getI18n()
+// observe ONE instance (and one active locale) even when each bundles its own
+// copy of @jorvel/i18n — same pattern as getEventBus()/getStore().
+
+const I18N_KEY = '__JORVEL_I18N_SINGLETON__';
+type GlobalWithI18n = typeof globalThis & { [I18N_KEY]?: I18n };
+
+/**
+ * Get the shared i18n singleton, creating it from `opts` on first call
+ * (defaults to `{ locale: 'en' }`). Subsequent calls ignore `opts` and return
+ * the existing instance — configure it once in the host before remotes load,
+ * or use `setI18n()`.
+ */
+export function getI18n(opts?: CreateI18nOptions): I18n {
+  const g = globalThis as GlobalWithI18n;
+  if (!g[I18N_KEY]) g[I18N_KEY] = createI18n(opts ?? { locale: 'en' });
+  return g[I18N_KEY];
+}
+
+/** Replace the shared singleton (host configures it before remotes consume it). */
+export function setI18n(instance: I18n): void {
+  (globalThis as GlobalWithI18n)[I18N_KEY] = instance;
+}
+
+/** @internal — reset the singleton (tests / single-threaded only). */
+export function _resetI18n(): void {
+  delete (globalThis as GlobalWithI18n)[I18N_KEY];
 }
 
 // ── Locale detection ──────────────────────────────────────────────────────

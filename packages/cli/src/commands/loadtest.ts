@@ -63,7 +63,8 @@ export default function () {
   });
   check(res, {
     'status is 2xx': (r) => r.status >= 200 && r.status < 300,
-    'has SSR marker': (r) => typeof r.body === 'string' && r.body.includes('x-jorvel-ssr'),
+    // x-jorvel-ssr is a RESPONSE HEADER (k6 canonicalizes header keys), not body.
+    'has SSR marker': (r) => !!(r.headers['X-Jorvel-Ssr'] || r.headers['x-jorvel-ssr']),
   });
   sleep(1);
 }

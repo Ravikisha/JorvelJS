@@ -24,15 +24,11 @@ async function waitForHttpOk(url: string, timeoutMs: number) {
 }
 
 describe('integration: rspack federation remoteEntry is served', () => {
-  it(
+  // Opt-in (spawns a dev server + makes HTTP requests). Use `it.skipIf` so it
+  // reports as SKIPPED rather than a falsely-passing early `return`.
+  it.skipIf(process.env.JORVEL_SMOKE !== '1')(
     'starts remote dev server and serves /remoteEntry.js when jorvel.federation.json exists',
     async () => {
-      if (process.env.JORVEL_SMOKE !== '1') {
-        // This test requires spawning a dev server and making HTTP requests.
-        // Keep it opt-in to avoid flaky CI/dev environments.
-        return;
-      }
-
       const repoRoot = path.resolve(__dirname, '..', '..', '..');
   const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-it-'))) as string;
 

@@ -3,6 +3,9 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import kleur from 'kleur';
 import { loadWorkspaceConfig } from '../config.js';
+import { discoverApps } from '../discovery.js';
+import { attachFederationDiff } from './federation-diff.js';
+import { attachFederationImpact } from './federation-impact.js';
 
 type AppMeta = {
   name: string;
@@ -20,12 +23,24 @@ type FederationConfig = {
   shared: Record<string, { singleton: boolean; eager?: boolean; requiredVersion?: string | false }>;
 };
 
-function defaultShared(): FederationConfig['shared'] {
+/**
+ * Default shared-dep config for an app.
+ *
+ * Module Federation requires `eager: true` on the HOST so the shared scope is
+ * populated before any remote loads. On a REMOTE, eager-loading every shared
+ * dep defeats the async-boundary that JORVEL relies on for share-scope
+ * initialization (and inflates the initial chunk). Default per role:
+ *
+ *   host   → eager: true   (share-scope owner)
+ *   remote → eager: false  (lazy-resolves via host scope)
+ */
+function defaultShared(role: 'host' | 'remote'): FederationConfig['shared'] {
+  const eager = role === 'host';
   return {
-    react: { singleton: true, eager: true, requiredVersion: false },
-    'react-dom': { singleton: true, eager: true, requiredVersion: false },
-    '@jorvel/event-bus': { singleton: true, eager: true, requiredVersion: false },
-    '@jorvel/runtime': { singleton: true, eager: true, requiredVersion: false },
+    react: { singleton: true, eager, requiredVersion: false },
+    'react-dom': { singleton: true, eager, requiredVersion: false },
+    '@jorvel/event-bus': { singleton: true, eager, requiredVersion: false },
+    '@jorvel/runtime': { singleton: true, eager, requiredVersion: false },
   };
 }
 
@@ -33,7 +48,7 @@ function mergeShared(...shared: Array<FederationConfig['shared']>) {
   return Object.assign({}, ...shared);
 }
 
-function toFederationName(s: string) {
+export function toFederationName(s: string) {
   // MF container names must be valid JS identifiers in many setups.
   // Keep it simple and consistent.
   return s.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -61,16 +76,23 @@ async function detectExposes(appDir: string, meta: AppMeta): Promise<Record<stri
     return { ...meta.exposes };
   }
 
-  // Default convention: a generated remote has src/remote.tsx.
-  const remoteEntry = path.join(appDir, 'src', 'remote.tsx');
-  if (await fs.pathExists(remoteEntry)) {
-    return { './App': './src/remote.tsx' };
+  // Default convention: a generated remote has src/remote.{tsx,jsx,ts,js}.
+  // Probe in extension priority order — TS apps land on `.tsx`, JS apps on `.jsx`.
+  const entryCandidates = ['remote.tsx', 'remote.jsx', 'remote.ts', 'remote.js'];
+  for (const file of entryCandidates) {
+    const full = path.join(appDir, 'src', file);
+    if (await fs.pathExists(full)) {
+      return { './App': `./src/${file}` };
+    }
   }
 
-  // Fallback: if src/App.tsx exists, expose that.
-  const appTsx = path.join(appDir, 'src', 'App.tsx');
-  if (await fs.pathExists(appTsx)) {
-    return { './App': './src/App.tsx' };
+  // Fallback: src/App.{tsx,jsx,ts,js}.
+  const appCandidates = ['App.tsx', 'App.jsx', 'App.ts', 'App.js'];
+  for (const file of appCandidates) {
+    const full = path.join(appDir, 'src', file);
+    if (await fs.pathExists(full)) {
+      return { './App': `./src/${file}` };
+    }
   }
 
   return undefined;
@@ -120,26 +142,15 @@ async function detectSharedFromSource(appDir: string) {
   return shared;
 }
 
-async function findApps(workspaceDir: string) {
-  const appsDir = path.join(workspaceDir, 'apps');
-  if (!(await fs.pathExists(appsDir))) return [];
-
-  const folders = (await fs.readdir(appsDir)).filter((f) => !f.startsWith('.'));
-  const apps: Array<{ dir: string; meta: AppMeta }> = [];
-
-  for (const folder of folders) {
-    const dir = path.join(appsDir, folder);
-    const metaPath = path.join(dir, 'jorvel.app.json');
-    if (!(await fs.pathExists(metaPath))) continue;
-    const meta = (await fs.readJson(metaPath)) as AppMeta;
-    apps.push({ dir, meta });
-  }
-
-  return apps;
-}
-
-async function writeFederationConfig(appDir: string, cfg: FederationConfig) {
-  const outPath = path.join(appDir, 'jorvel.federation.json');
+async function writeFederationConfig(
+  appDir: string,
+  cfg: FederationConfig,
+  envSuffix?: string | null,
+) {
+  const filename = envSuffix
+    ? `jorvel.federation.${envSuffix}.json`
+    : 'jorvel.federation.json';
+  const outPath = path.join(appDir, filename);
   const withSchema = {
     $schema: '../../node_modules/@jorvel/types/schemas/jorvel.federation.json',
     ...cfg,
@@ -150,11 +161,27 @@ async function writeFederationConfig(appDir: string, cfg: FederationConfig) {
 export const federationCommand = new Command('federation')
   .description('Generate starter Module Federation config files (JSON) for apps')
   .option('-d, --dir <path>', 'Workspace root directory', process.cwd())
-  .action(async (opts: { dir: string }) => {
+  .option(
+    '--env <name>',
+    'Emit env-suffixed files (jorvel.federation.<env>.json). Useful for shipping prod remote URLs alongside dev defaults.',
+  )
+  .action(async (opts: { dir: string; env?: string }) => {
     const workspaceDir = path.resolve(opts.dir);
 
+    // When --env is supplied, the host + remote outputs land under the
+    // sibling jorvel.federation.<env>.json. Runtime loaders pick the correct
+    // file via `JORVEL_FEDERATION_FILE` env var (see rspack.config.mjs).
+    const envSuffix = opts.env && /^[a-z0-9-]+$/i.test(opts.env) ? opts.env : null;
+    if (opts.env && !envSuffix) {
+      console.error(
+        kleur.red(`Invalid --env "${opts.env}". Use a-z, 0-9, hyphen (e.g. prod, staging).`),
+      );
+      process.exitCode = 1;
+      return;
+    }
+
   const { cfg: workspaceCfg, plugins } = await loadWorkspaceConfig(workspaceDir);
-    const apps = await findApps(workspaceDir);
+    const apps = await discoverApps(workspaceDir, workspaceCfg.appsDir);
 
     if (apps.length === 0) {
       console.log(kleur.yellow('No apps found (missing apps/*/jorvel.app.json).'));
@@ -164,11 +191,19 @@ export const federationCommand = new Command('federation')
     const host = apps.find((a) => a.meta.type === 'host');
     const remotes = apps.filter((a) => a.meta.type === 'remote');
 
+    // The container global (left of `@` in a `name@url` remote spec) must equal
+    // the remote's ModuleFederationPlugin `name`, which is the *sanitized*
+    // federation name (hyphens → underscores). The import-specifier key keeps the
+    // raw app name. Track the sanitized name per remote dir so the host wires the
+    // correct global — otherwise hyphenated remotes (e.g. `user-portal`) never load.
+    const remoteFedName = new Map<string, string>();
+
     // Generate remotes first.
     for (const remote of remotes) {
       const detectedName = await detectAppName(remote.dir, remote.meta);
+      remoteFedName.set(remote.dir, toFederationName(detectedName));
       const exposes = await detectExposes(remote.dir, remote.meta);
-      const shared = mergeShared(defaultShared(), await detectSharedFromPackageJson(remote.dir), await detectSharedFromSource(remote.dir));
+      const shared = mergeShared(defaultShared('remote'), await detectSharedFromPackageJson(remote.dir), await detectSharedFromSource(remote.dir));
 
       // Allow workspace config to add extra shared singleton deps.
       const extraShared = (workspaceCfg.federation?.shared ?? []).reduce((acc, name) => {
@@ -195,13 +230,14 @@ export const federationCommand = new Command('federation')
         if (next) finalCfg = next as FederationConfig;
       }
 
-      await writeFederationConfig(remote.dir, finalCfg);
-      console.log(kleur.green(`wrote ${path.relative(workspaceDir, path.join(remote.dir, 'jorvel.federation.json'))}`));
+      await writeFederationConfig(remote.dir, finalCfg, envSuffix);
+      const remoteFilename = envSuffix ? `jorvel.federation.${envSuffix}.json` : 'jorvel.federation.json';
+      console.log(kleur.green(`wrote ${path.relative(workspaceDir, path.join(remote.dir, remoteFilename))}`));
     }
 
     if (host) {
       const detectedName = await detectAppName(host.dir, host.meta);
-      const shared = mergeShared(defaultShared(), await detectSharedFromPackageJson(host.dir), await detectSharedFromSource(host.dir));
+      const shared = mergeShared(defaultShared('host'), await detectSharedFromPackageJson(host.dir), await detectSharedFromSource(host.dir));
 
       const extraShared = (workspaceCfg.federation?.shared ?? []).reduce((acc, name) => {
         acc[name] = { singleton: true, requiredVersion: false };
@@ -213,7 +249,14 @@ export const federationCommand = new Command('federation')
         filename: 'remoteEntry.js',
   // Rspack dev-server serves remoteEntry at the root by default.
   // (Vite-style /assets/remoteEntry.js doesn't apply here.)
-  remotes: Object.fromEntries(remotes.map((r) => [r.meta.name, `${r.meta.name}@http://localhost:${r.meta.port}/remoteEntry.js`])),
+  // Key = raw app name (the import-specifier prefix: `import('user-portal/App')`).
+  // Global (left of @) = sanitized federation name, matching the remote's container.
+  remotes: Object.fromEntries(
+    remotes.map((r) => [
+      r.meta.name,
+      `${remoteFedName.get(r.dir) ?? toFederationName(r.meta.name)}@http://localhost:${r.meta.port}/remoteEntry.js`,
+    ]),
+  ),
         shared: mergeShared(shared, extraShared)
       };
 
@@ -228,9 +271,15 @@ export const federationCommand = new Command('federation')
         if (next) finalCfg = next as FederationConfig;
       }
 
-      await writeFederationConfig(host.dir, finalCfg);
-      console.log(kleur.green(`wrote ${path.relative(workspaceDir, path.join(host.dir, 'jorvel.federation.json'))}`));
+      await writeFederationConfig(host.dir, finalCfg, envSuffix);
+      const hostFilename = envSuffix ? `jorvel.federation.${envSuffix}.json` : 'jorvel.federation.json';
+      console.log(kleur.green(`wrote ${path.relative(workspaceDir, path.join(host.dir, hostFilename))}`));
     }
 
   console.log(kleur.cyan('Done. Next: run `jorvel dev` and open the host app; it should load the remote via Module Federation.'));
   });
+
+// `jorvel federation diff --base <ref>` — CI gate for contract drift.
+attachFederationDiff(federationCommand);
+// `jorvel federation impact [remote]` — which hosts consume a remote.
+attachFederationImpact(federationCommand);

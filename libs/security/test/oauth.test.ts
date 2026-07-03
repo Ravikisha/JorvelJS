@@ -29,6 +29,22 @@ describe('generatePkceChallenge', () => {
 });
 
 describe('buildAuthorizeUrl', () => {
+  it('extras cannot override security-critical managed params', () => {
+    const url = buildAuthorizeUrl({
+      authorizationEndpoint: 'https://idp.example.com/authorize',
+      clientId: 'my-spa',
+      redirectUri: 'https://app.example.com/cb',
+      state: 's',
+      codeChallenge: 'C',
+      extras: { redirect_uri: 'https://evil.example.com', response_type: 'token', audience: 'api' },
+    });
+    const u = new URL(url);
+    expect(u.searchParams.get('redirect_uri')).toBe('https://app.example.com/cb');
+    expect(u.searchParams.get('response_type')).toBe('code');
+    // Non-conflicting extras are still applied.
+    expect(u.searchParams.get('audience')).toBe('api');
+  });
+
   it('emits the canonical OIDC authorize URL', () => {
     const url = buildAuthorizeUrl({
       authorizationEndpoint: 'https://idp.example.com/authorize',

@@ -50,7 +50,13 @@ export function createRoute<P = Record<string, string>, S = Record<string, strin
         }
         if (seg === '*') {
           const rest = p['*'];
-          return rest ? encodeURIComponent(String(rest)) : '';
+          if (rest == null || rest === '') return '';
+          // A splat captures a multi-segment path — encode each segment but keep
+          // the separators, otherwise `/` becomes %2F and the URL breaks.
+          return String(rest)
+            .split('/')
+            .map((s) => encodeURIComponent(s))
+            .join('/');
         }
         return seg;
       }).filter(Boolean);

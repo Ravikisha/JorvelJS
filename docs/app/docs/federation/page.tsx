@@ -56,25 +56,41 @@ export default function FederationPage() {
         even if the host and remote ship slightly different JORVEL versions.
       </Callout>
 
+      <h2 id="add-remote">Wiring a remote into the host</h2>
+      <p>
+        To plug a remote into an existing host after the fact, use{' '}
+        <code>jorvel add remote</code>. It updates the host&apos;s federation map (with a sanitized
+        container global for hyphenated names), adds a <code>/&lt;name&gt;/*</code> route to{' '}
+        <code>jorvel.routes.host.json</code>, regenerates <code>src/remotes.d.ts</code>, and wires the
+        bootstrap <code>REMOTES</code> map + a <code>NavLink</code>. Run{' '}
+        <code>jorvel generate types</code> any time to refresh the ambient remote-module declarations
+        on their own.
+      </p>
+      <CodeBlock
+        language="bash"
+        code={`# Wire a remote that runs on :3002 into the host
+jorvel add remote reports --port 3002
+
+# …or point at a deployed remoteEntry.js
+jorvel add remote reports --url https://cdn.example.com/reports/remoteEntry.js`}
+      />
+
       <h2 id="shared-deps">Shared dependencies</h2>
       <p>
         JORVEL auto-detects <code>react</code>, <code>react-dom</code>, and the framework packages.
-        Anything else listed in <code>jorvel.config.ts:federation.shared</code> is added as a singleton.
+        Anything else listed under <code>federation.shared</code> in{' '}
+        <code>jorvel.config.json</code> is added as a singleton.
       </p>
 
       <CodeBlock
-        language="ts"
-        filename="jorvel.config.ts"
-        code={`import type { JorvelWorkspaceConfig } from '@jorvel/types';
-
-const config: JorvelWorkspaceConfig = {
-  federation: {
-    shared: ['zustand', '@tanstack/react-query'],
-    versionCheck: true,
-  },
-};
-
-export default config;`}
+        language="json"
+        filename="jorvel.config.json"
+        code={`{
+  "federation": {
+    "shared": ["zustand", "@tanstack/react-query"],
+    "versionCheck": true
+  }
+}`}
       />
 
       <h2 id="allowlist">Runtime origin allowlist</h2>
@@ -233,6 +249,40 @@ describe('dashboardContract', () => {
         to scaffold the file programmatically.
       </p>
 
+      <h2 id="contract-diff">Contract diff in CI</h2>
+      <p>
+        Contract tests verify a remote still exposes what it claims. The complement —{' '}
+        <code>jorvel federation diff</code> — catches a remote <em>removing</em> something a host
+        depends on, <em>before</em> merge. It compares each app&apos;s{' '}
+        <code>jorvel.federation.json</code> against a git base ref and classifies every change:
+      </p>
+      <table>
+        <thead><tr><th>Severity</th><th>Examples</th><th>CI</th></tr></thead>
+        <tbody>
+          <tr><td><code>breaking</code></td><td>exposed module removed · remote dropped from host · singleton demoted</td><td>exit <code>1</code></td></tr>
+          <tr><td><code>risky</code></td><td>shared dep removed · <code>requiredVersion</code> changed</td><td>exit <code>0</code> (warned)</td></tr>
+          <tr><td><code>info</code></td><td>remote URL changed · <code>eager</code> toggled · expose path moved</td><td>exit <code>0</code></td></tr>
+          <tr><td><code>compatible</code></td><td>new expose · new remote · new shared dep</td><td>exit <code>0</code></td></tr>
+        </tbody>
+      </table>
+      <CodeBlock
+        language="bash"
+        code={`# locally — compare working tree against main
+jorvel federation diff --base main
+
+# CI (PR gate) — fail the job on a breaking contract change
+jorvel federation diff --base origin/\${{ github.base_ref }}
+
+# machine-readable, or report-only
+jorvel federation diff --base main --json
+jorvel federation diff --base main --allow-breaking`}
+      />
+      <p>
+        The base side is read with <code>git show &lt;ref&gt;:&lt;path&gt;</code>, so no second
+        checkout is needed. Run it after <code>jorvel federation</code> so the on-disk configs are
+        current.
+      </p>
+
       <h2 id="resilience">Runtime resilience (last-good fallback)</h2>
       <p>
         Wrap <code>loadRemoteEntry</code> / <code>loadRemoteModule</code> with{' '}
@@ -257,7 +307,7 @@ await loadWithFallback(
     cache,
     loader: (r) => loadRemoteEntry(r),
     onPhase: (p, detail) =>
-      observability.reportMetric({ name: 'mfjs.fallback', value: 1, tags: { phase: p, remote: detail.remote } }),
+      observability.reportMetric({ name: 'jorvel.fallback', value: 1, tags: { phase: p, remote: detail.remote } }),
   },
 );`}
       />
@@ -442,6 +492,41 @@ registry.list();            // → RemoteDescriptor[]`}
           </tr>
         </tbody>
       </table>
+
+      <h2 id="blue-green">Blue/green &amp; weighted canaries</h2>
+      <p>
+        Ship a new remote version to a slice of traffic. <code>pickWeightedRemote</code> buckets
+        users (sticky by a key via FNV-1a) across versions; <code>blue-green</code> flips a whole
+        remote between two entry URLs. Dial the canary weight up as confidence grows.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`import { resolveWeightedRemotes, pickWeightedRemote } from '@jorvel/runtime';
+
+const dashboard = resolveWeightedRemotes([
+  { entryUrl: 'https://cdn/app/v2/remoteEntry.js', weight: 10 }, // 10% canary
+  { entryUrl: 'https://cdn/app/v1/remoteEntry.js', weight: 90 }, // 90% stable
+]);
+const chosen = pickWeightedRemote(dashboard, { stickyKey: userId }); // same user → same bucket`}
+      />
+
+      <h2 id="registry">Remote registry (dynamic discovery)</h2>
+      <p>
+        Instead of hard-coding remote URLs, let remotes self-register and have the host fetch a
+        manifest at boot. <code>createRegistryHandler</code> (server) + <code>ManifestRegistry</code>{' '}
+        (client) provide discovery with version + <a href="#">health</a> filtering.
+      </p>
+      <CodeBlock
+        language="ts"
+        code={`// registry server (any runtime)
+import { createRegistryHandler } from '@jorvel/runtime';
+export const handler = createRegistryHandler({ /* store */ });
+
+// host boot
+import { ManifestRegistry } from '@jorvel/runtime';
+const registry = new ManifestRegistry({ url: '/registry/manifest.json', pollMs: 30_000 });
+const remotes = (await registry.fetch()).withHealth(); // only 'up' remotes`}
+      />
 
       <Callout variant="success" title="That's federation. The rest is plumbing.">
         Read <a href="/docs/security">Security</a> for the CSP/SRI/rate-limit/audit side, or{' '}

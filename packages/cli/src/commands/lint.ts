@@ -6,7 +6,7 @@ export const lintCommand = new Command('lint')
   .description('Run eslint across the workspace.')
   .option('--fix', 'Autofix issues')
   .action(async (opts: { fix?: boolean }) => {
-    const args = ['-r', 'lint'];
+    const args = ['-r', '--if-present', 'lint'];
     if (opts.fix) args.push('--', '--fix');
     try {
       await execa('pnpm', args, { stdio: 'inherit' });

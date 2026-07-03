@@ -62,8 +62,29 @@ export function createNodeServer(options: NodeAdapterOptions): http.Server {
     try {
       const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
 
-      if (staticMount && url.pathname.startsWith(staticMount)) {
-        const rel = url.pathname.slice(staticMount.length).replace(/^\/+/, '');
+      // Static asset path. Only consume on GET/HEAD; decode %XX so
+      // percent-encoded filenames resolve; reject `\0` (path-truncation).
+      // segment-boundary match avoids `/static` matching `/staticfoo`.
+      const segmentMatch =
+        staticMount === '/' ||
+        url.pathname === staticMount ||
+        url.pathname.startsWith(staticMount + '/');
+      const isReadMethod = req.method === 'GET' || req.method === 'HEAD';
+      if (staticMount && segmentMatch && isReadMethod) {
+        const rawRel = url.pathname.slice(staticMount.length).replace(/^\/+/, '');
+        let rel: string;
+        try {
+          rel = decodeURIComponent(rawRel);
+        } catch {
+          res.statusCode = 400;
+          res.end('bad request');
+          return;
+        }
+        if (rel.includes('\0')) {
+          res.statusCode = 400;
+          res.end('bad request');
+          return;
+        }
         const filePath = safeJoinUnder(staticRootResolved, rel);
         if (filePath) {
           let stat: fs.Stats | null = null;
@@ -74,13 +95,36 @@ export function createNodeServer(options: NodeAdapterOptions): http.Server {
           }
           if (stat?.isFile()) {
             const ext = path.extname(filePath).toLowerCase();
+            const etag = `W/"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
             res.setHeader('content-type', MIME[ext] ?? 'application/octet-stream');
+            res.setHeader('etag', etag);
+            res.setHeader('last-modified', stat.mtime.toUTCString());
             res.setHeader(
               'cache-control',
               isFingerprinted(filePath)
                 ? 'public, max-age=31536000, immutable'
                 : 'public, max-age=300, must-revalidate',
             );
+
+            // Conditional GET: honor If-None-Match / If-Modified-Since.
+            const inm = req.headers['if-none-match'];
+            const ims = req.headers['if-modified-since'];
+            const inmMatch = typeof inm === 'string' && inm === etag;
+            const imsMatch =
+              typeof ims === 'string' &&
+              new Date(ims).getTime() >= Math.floor(stat.mtimeMs / 1000) * 1000;
+            if (inmMatch || imsMatch) {
+              res.statusCode = 304;
+              res.end();
+              return;
+            }
+
+            if (req.method === 'HEAD') {
+              res.statusCode = 200;
+              res.end();
+              return;
+            }
+
             const stream = fs.createReadStream(filePath);
             stream.on('error', (err) => {
               log.error(`static read failed: ${(err as Error).message}`);
@@ -131,14 +175,26 @@ export function createNodeServer(options: NodeAdapterOptions): http.Server {
         res.end();
       }
     } catch (err) {
-      log.error(err instanceof Error ? err.message : String(err));
+      const e = err as Error & { statusCode?: number };
+      // Full detail is logged server-side only.
+      log.error(e instanceof Error ? e.message : String(err));
       if (res.headersSent) {
         res.destroy();
         return;
       }
-      res.statusCode = 500;
+      // Honor an explicit statusCode (e.g. 413 from readBody) instead of always
+      // 500, and return a GENERIC body — never echo err.message to the client
+      // (internal path / error disclosure).
+      const status = typeof e.statusCode === 'number' ? e.statusCode : 500;
+      res.statusCode = status;
       res.setHeader('content-type', 'text/plain; charset=utf-8');
-      res.end(err instanceof Error ? err.message : String(err));
+      res.end(
+        status === 413
+          ? 'Payload Too Large'
+          : status >= 500
+            ? 'Internal Server Error'
+            : 'Bad Request',
+      );
     }
   });
 

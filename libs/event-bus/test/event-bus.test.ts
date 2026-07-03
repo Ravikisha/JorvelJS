@@ -188,6 +188,15 @@ describe('EventBus — once', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  it('off() cancels a once() registration by the original handler', () => {
+    const bus = new EventBus<AppEvents>();
+    const handler = vi.fn();
+    bus.once('ping', handler);
+    bus.off('ping', handler);
+    bus.emit('ping', { n: 1 });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it('once() and on() can coexist on the same event', () => {
     const bus = new EventBus<AppEvents>();
     const onceFn = vi.fn();

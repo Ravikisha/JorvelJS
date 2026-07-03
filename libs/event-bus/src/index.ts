@@ -27,19 +27,46 @@ interface OnOptions {
   replay?: boolean;
 }
 
+export interface EventBusOptions {
+  errorHandler?: ErrorHandler;
+  /**
+   * Maximum distinct event names retained in the replay buffer. When the count
+   * exceeds this, the oldest-inserted name's last payload is evicted (LRU-ish:
+   * insertion order, refreshed on each emit). Default: 64. Set `Infinity` to
+   * keep the legacy unbounded behavior.
+   */
+  maxLastKeys?: number;
+}
+
 /**
  * Lightweight typed publish/subscribe event bus with wildcard support, optional
- * replay-on-subscribe, and a per-bus error handler so a single throwing
+ * replay-on-subscribe, and per-bus error handlers so a single throwing
  * listener cannot abort iteration.
  */
 export class EventBus<Events extends EventMap = EventMap> {
   private handlers: { [K in keyof Events]?: Set<Handler<Events[K]>> } = {};
   private wildcards = new Set<WildcardHandler<Events>>();
-  private last: { [K in keyof Events]?: Events[K] } = {};
-  private errorHandler: ErrorHandler;
+  private last = new Map<keyof Events, Events[keyof Events]>();
+  private errorHandlers = new Set<ErrorHandler>();
+  private maxLastKeys: number;
 
-  constructor(opts: { errorHandler?: ErrorHandler } = {}) {
-    this.errorHandler = opts.errorHandler ?? defaultErrorHandler;
+  constructor(opts: EventBusOptions = {}) {
+    if (opts.errorHandler) this.errorHandlers.add(opts.errorHandler);
+    this.maxLastKeys = opts.maxLastKeys ?? 64;
+  }
+
+  private emitError(err: unknown, event: string): void {
+    if (this.errorHandlers.size === 0) {
+      defaultErrorHandler(err, event);
+      return;
+    }
+    for (const h of [...this.errorHandlers]) {
+      try {
+        h(err, event);
+      } catch {
+        /* never let error-handler throw escape */
+      }
+    }
   }
 
   /** Subscribe to an event. Returns an unsubscribe function. */
@@ -50,11 +77,11 @@ export class EventBus<Events extends EventMap = EventMap> {
   ): Unsubscribe {
     const set = (this.handlers[event] ??= new Set());
     set.add(handler);
-    if (opts?.replay && event in this.last) {
+    if (opts?.replay && this.last.has(event)) {
       try {
-        handler(this.last[event] as Events[K]);
+        handler(this.last.get(event) as Events[K]);
       } catch (err) {
-        this.errorHandler(err, String(event));
+        this.emitError(err, String(event));
       }
     }
     return () => {
@@ -79,23 +106,41 @@ export class EventBus<Events extends EventMap = EventMap> {
         unsub();
       }
     };
+    // Tag the wrapper with its original so `off(event, handler)` can still
+    // cancel a `once()` registration (the set holds the wrapper, not handler).
+    (wrapper as { __jorvelOnceOf?: Handler<Events[K]> }).__jorvelOnceOf = handler;
     const unsub = this.on(event, wrapper);
     return unsub;
   }
 
   off<K extends keyof Events>(event: K, handler: Handler<Events[K]>): void {
-    this.handlers[event]?.delete(handler);
+    const set = this.handlers[event];
+    if (!set) return;
+    set.delete(handler);
+    // Also remove any once()-wrapper registered for this original handler.
+    for (const h of [...set]) {
+      if ((h as { __jorvelOnceOf?: Handler<Events[K]> }).__jorvelOnceOf === handler) {
+        set.delete(h);
+      }
+    }
   }
 
   emit<K extends keyof Events>(event: K, payload: Events[K]): void {
-    this.last[event] = payload;
+    // Refresh insertion order so most-recently-emitted survives eviction.
+    if (this.last.has(event)) this.last.delete(event);
+    this.last.set(event, payload as Events[keyof Events]);
+    while (this.last.size > this.maxLastKeys) {
+      const oldest = this.last.keys().next().value;
+      if (oldest === undefined) break;
+      this.last.delete(oldest);
+    }
     const set = this.handlers[event];
     if (set) {
       for (const handler of [...set]) {
         try {
           handler(payload);
         } catch (err) {
-          this.errorHandler(err, String(event));
+          this.emitError(err, String(event));
         }
       }
     }
@@ -104,7 +149,7 @@ export class EventBus<Events extends EventMap = EventMap> {
         try {
           handler(event, payload);
         } catch (err) {
-          this.errorHandler(err, String(event));
+          this.emitError(err, String(event));
         }
       }
     }
@@ -112,27 +157,41 @@ export class EventBus<Events extends EventMap = EventMap> {
 
   /** Replay the most recent emission for `event` to a single handler synchronously. */
   replay<K extends keyof Events>(event: K, handler: Handler<Events[K]>): boolean {
-    if (!(event in this.last)) return false;
+    if (!this.last.has(event)) return false;
     try {
-      handler(this.last[event] as Events[K]);
+      handler(this.last.get(event) as Events[K]);
     } catch (err) {
-      this.errorHandler(err, String(event));
+      this.emitError(err, String(event));
     }
     return true;
   }
 
-  /** Override the error handler for this bus. */
-  onError(handler: ErrorHandler): void {
-    this.errorHandler = handler;
+  /**
+   * Register an error handler. Multiple handlers may coexist — all are
+   * notified for each thrown listener. Returns an unsubscribe function.
+   *
+   * Note: prior API was last-writer-wins (a setter). Existing callers that
+   * relied on overwriting can still call `bus.clearErrorHandlers()` first.
+   */
+  onError(handler: ErrorHandler): Unsubscribe {
+    this.errorHandlers.add(handler);
+    return () => {
+      this.errorHandlers.delete(handler);
+    };
+  }
+
+  /** Drop every registered error handler (defaults to `console.error`). */
+  clearErrorHandlers(): void {
+    this.errorHandlers.clear();
   }
 
   clear<K extends keyof Events>(event?: K): void {
     if (event !== undefined) {
       delete this.handlers[event];
-      delete this.last[event];
+      this.last.delete(event);
     } else {
       this.handlers = {};
-      this.last = {};
+      this.last.clear();
       this.wildcards.clear();
     }
   }

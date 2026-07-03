@@ -36,6 +36,10 @@
       "types": "./dist/csp.d.ts",
       "import": "./dist/csp.js"
     },
+    "./headers": {
+      "types": "./dist/headers.d.ts",
+      "import": "./dist/headers.js"
+    },
     "./sri": {
       "types": "./dist/sri.d.ts",
       "import": "./dist/sri.js"

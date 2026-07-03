@@ -17,11 +17,15 @@ From the repo root:
 cd examples/basic
 pnpm install
 
-# Start both apps via the JORVEL CLI (recommended)
-pnpm -C ../../packages/cli dev -- --dir . --proxy-remotes
+# Start both apps via the JORVEL CLI (recommended). `pnpm dev` builds the CLI
+# (predev hook) then runs `jorvel dev --dir .` from this example.
+pnpm dev
+
+# Same-origin proxy mode — forward flags to the CLI with `--`:
+pnpm dev -- --proxy-remotes
 
 # Optional: also enable remote rebuild -> host reload
-# pnpm -C ../../packages/cli dev -- --dir . --proxy-remotes --hmr-remotes
+# pnpm dev -- --proxy-remotes --hmr-remotes
 ```
 
 Then open:

@@ -111,6 +111,9 @@ body {
   color: hsl(var(--foreground));
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
+  /* Contain accidental horizontal overflow WITHOUT breaking position:sticky
+     (overflow-x:hidden on html/body would disable the sticky header + sidebar). */
+  overflow-x: clip;
 }
 
 /* Subtle radial backdrop on dark */
@@ -247,8 +250,18 @@ body {
   font-size: 0.875rem;
   border: 1px solid hsl(var(--border));
   border-radius: 0.5rem;
-  overflow: hidden;
+  /* Scroll wide tables inside their own box on small screens instead of
+     forcing the whole page to scroll horizontally. */
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
+.prose-jorvel thead,
+.prose-jorvel tbody { width: 100%; }
+/* Media never overflows its container (press logos, screenshots, etc.). */
+.prose-jorvel img,
+.prose-jorvel svg { max-width: 100%; height: auto; }
 .prose-jorvel th,
 .prose-jorvel td {
   text-align: left;
@@ -444,6 +457,44 @@ body {
   margin-top: 0;
   margin-bottom: 0.25rem;
   font-size: 1.05rem;
+}
+
+/* ── MagicUI + Aceternity animations ──────────────────────────────────── */
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+}
+@keyframes marquee-vertical {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - var(--gap, 1rem))); }
+}
+.animate-marquee { animation: marquee var(--duration, 40s) linear infinite; }
+.animate-marquee-vertical { animation: marquee-vertical var(--duration, 40s) linear infinite; }
+
+@keyframes scroll {
+  to { transform: translate(calc(-50% - 0.5rem)); }
+}
+.animate-scroll {
+  animation: scroll var(--animation-duration, 40s) var(--animation-direction, forwards) linear infinite;
+}
+
+@keyframes shimmer-slide {
+  to { transform: translate(calc(100cqw - 100%), 0); }
+}
+.animate-shimmer-slide { animation: shimmer-slide var(--speed, 3s) ease-in-out infinite alternate; }
+
+@keyframes spin-around {
+  0% { transform: translateZ(0) rotate(0); }
+  15%, 35% { transform: translateZ(0) rotate(90deg); }
+  65%, 85% { transform: translateZ(0) rotate(270deg); }
+  100% { transform: translateZ(0) rotate(360deg); }
+}
+.animate-spin-around { animation: spin-around calc(var(--speed, 3s) * 2) infinite linear; }
+
+@keyframes aurora-text {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 /* Card sheen on hover */

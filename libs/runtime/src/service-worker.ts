@@ -123,7 +123,11 @@ async function networkFirst(name, req) {
   } catch {
     const hit = await cache.match(req);
     if (hit) return hit;
-    return cache.match('/') || Response.error();
+    // cache.match returns a Promise (always truthy) — must await it, else
+    // respondWith resolves to the Promise object / undefined and the offline
+    // navigation fails instead of serving the cached shell.
+    const shell = await cache.match('/');
+    return shell || Response.error();
   }
 }
 

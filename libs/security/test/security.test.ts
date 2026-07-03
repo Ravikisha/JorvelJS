@@ -85,6 +85,13 @@ describe('sanitize', () => {
     expect(isSafePathname('/foo/../etc')).toBe(false);
   });
 
+  it('rejects percent-encoded traversal (%2e%2e and double-encoded)', () => {
+    expect(isSafePathname('/foo/%2e%2e/etc')).toBe(false);
+    expect(isSafePathname('/foo/%2E%2E/etc')).toBe(false);
+    expect(isSafePathname('/foo/%252e%252e/etc')).toBe(false);
+    expect(isSafePathname('/foo/%2e%2e%2fetc')).toBe(false);
+  });
+
   it('strips proto-pollution keys', () => {
     const cleaned = pruneProtoKeys({ a: 1, __proto__: { evil: true } } as Record<string, unknown>);
     expect(cleaned).toHaveProperty('a', 1);

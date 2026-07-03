@@ -5,6 +5,7 @@ import { NoFlashScript } from '@/components/theme-toggle';
 import { SiteHeader } from '@/components/site/header';
 import { SiteFooter } from '@/components/site/footer';
 import { SearchDialog } from '@/components/site/search-dialog';
+import { Analytics } from '@/components/site/analytics';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -73,11 +74,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/logojorvel.png', type: 'image/png' },
       { url: '/favicon.ico', sizes: '32x32' },
     ],
     shortcut: '/favicon.ico',
-    apple: '/jorvel-icon.svg',
+    apple: '/logojorvel.png',
   },
   manifest: '/manifest.webmanifest',
   openGraph: {
@@ -89,11 +90,11 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: '/jorvel-logo-dark.svg',
-        width: 1200,
-        height: 630,
+        url: '/logojorvel.png',
+        width: 512,
+        height: 512,
         alt: 'JORVEL — micro-frontend framework on Rspack Module Federation',
-        type: 'image/svg+xml',
+        type: 'image/png',
       },
     ],
   },
@@ -102,7 +103,7 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description:
       'Zero-config federation, file-based routing, SSR + streaming, edge adapters, observability. Next.js-level DX for micro-frontends.',
-    images: ['/jorvel-logo-dark.svg'],
+    images: ['/logojorvel.png'],
     creator: '@Ravikisha',
     site: '@Ravikisha',
   },
@@ -174,6 +175,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <SiteFooter />
           <SearchDialog />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

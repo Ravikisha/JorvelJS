@@ -116,7 +116,7 @@ const groups: CheckGroup[] = [
         task: 'Adapter scaffolded (Vercel / Cloudflare / Node / Docker)',
         href: '/docs/deployment',
       },
-      { task: 'CDN publicPath set in jorvel.config.ts' },
+      { task: 'CDN publicPath set in jorvel.config.json' },
       { task: 'Preview deploy per PR (jorvel ci affected)' },
       { task: 'Rollback plan documented and rehearsed' },
       { task: 'Smoke tests run against the deploy URL before flipping DNS' },

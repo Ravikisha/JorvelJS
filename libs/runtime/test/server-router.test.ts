@@ -7,6 +7,7 @@ import {
   createServerRouter,
   getServerRouter,
   setServerPath,
+  withServerRouter,
   _resetServerRouter,
 } from '../src/server-router.js';
 
@@ -125,5 +126,39 @@ describe('_resetServerRouter', () => {
     const b = getServerRouter('/second');
     expect(a).not.toBe(b);
     expect(b.getPath()).toBe('/second');
+  });
+});
+
+// AsyncLocalStorage is loaded via an indirect `new Function('s','return import(s)')`
+// import (to hide `node:async_hooks` from browser bundlers). That indirection
+// does NOT resolve under vitest's module runner, so ALS is unavailable here even
+// though it works in real Node (verified). Probe once and skip the deep
+// isolation assertions when ALS can't load, rather than asserting the fallback.
+const ALS_AVAILABLE = await withServerRouter('/__als_probe__', async () =>
+  getServerRouter().getPath(),
+).then((p) => p === '/__als_probe__');
+_resetServerRouter();
+
+describe('withServerRouter (AsyncLocalStorage scope)', () => {
+  it.skipIf(!ALS_AVAILABLE)('exposes the per-request router inside the callback', async () => {
+    const path = await withServerRouter('/a', async () => getServerRouter().getPath());
+    expect(path).toBe('/a');
+  });
+
+  it.skipIf(!ALS_AVAILABLE)('isolates concurrent requests (regression: loadAls promise-cache race)', async () => {
+    // Two withServerRouter calls racing the FIRST ALS load must each stay in
+    // their own scope — previously the second caller got a null store back
+    // (load promise not yet resolved) and leaked into the fallback router.
+    const a = withServerRouter('/foo', async () => {
+      await new Promise((r) => setTimeout(r, 10));
+      return getServerRouter().getPath();
+    });
+    const b = withServerRouter('/bar', async () => {
+      await new Promise((r) => setTimeout(r, 5));
+      return getServerRouter().getPath();
+    });
+    const [ra, rb] = await Promise.all([a, b]);
+    expect(ra).toBe('/foo');
+    expect(rb).toBe('/bar');
   });
 });
