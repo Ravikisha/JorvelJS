@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/ui",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Lightweight React UI primitives for JORVEL micro-frontends with theming and a11y defaults.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

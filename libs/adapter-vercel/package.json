@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/adapter-vercel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Vercel deployment adapter for JORVEL (Edge Functions + static assets).",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

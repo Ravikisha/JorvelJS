@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/event-bus",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Typed pub/sub event bus for JORVEL micro-frontends with wildcard, replay, and cross-tab support.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

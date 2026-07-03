@@ -1,6 +1,6 @@
 {
   "name": "jorvel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "JORVEL command-line tool: scaffold, dev, build, federation, SSR, deploy, and diagnostics for module federation workspaces.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

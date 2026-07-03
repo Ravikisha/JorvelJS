@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/rspack-route-assets",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Rspack/Webpack plugin that emits a per-route asset manifest for JORVEL preload tags.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

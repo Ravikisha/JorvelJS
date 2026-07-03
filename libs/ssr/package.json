@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/ssr",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Server-side rendering primitives for JORVEL: edge adapter, streaming, static export, state hydration.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

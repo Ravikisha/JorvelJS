@@ -1,7 +1,15 @@
 {
   "name": "@jorvel/tsconfig",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Shared TypeScript config presets for JORVEL projects.",
-  "publishConfig": { "access": "public" },
-  "files": ["base.json", "react.json", "node.json", "library.json", "README.md"]
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "base.json",
+    "react.json",
+    "node.json",
+    "library.json",
+    "README.md"
+  ]
 }

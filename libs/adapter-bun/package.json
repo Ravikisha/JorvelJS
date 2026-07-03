@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/adapter-bun",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Bun deployment adapter for JORVEL SSR (Bun.serve fetch handler + static assets).",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

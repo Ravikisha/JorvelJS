@@ -1,6 +1,6 @@
 {
   "name": "create-jorvel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Scaffold a new JORVEL workspace: `npm create jorvel@latest my-app`. Thin wrapper over `jorvel init`.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

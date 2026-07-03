@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/runtime",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "JORVEL runtime: router, remote loader, prefetch, error boundaries, telemetry, and React adapters for module federation hosts.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

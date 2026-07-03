@@ -220,7 +220,62 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)
 
+  libs/adapter-aws-lambda:
+    dependencies:
+      '@jorvel/ssr':
+        specifier: workspace:*
+        version: link:../ssr
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.19.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  libs/adapter-bun:
+    dependencies:
+      '@jorvel/ssr':
+        specifier: workspace:*
+        version: link:../ssr
+    devDependencies:
+      '@types/bun':
+        specifier: ^1.1.14
+        version: 1.3.14
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.19.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   libs/adapter-cloudflare:
+    dependencies:
+      '@jorvel/ssr':
+        specifier: workspace:*
+        version: link:../ssr
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.19.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  libs/adapter-deno:
+    dependencies:
+      '@jorvel/ssr':
+        specifier: workspace:*
+        version: link:../ssr
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.19.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  libs/adapter-netlify:
     dependencies:
       '@jorvel/ssr':
         specifier: workspace:*
@@ -509,6 +564,31 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)
+
+  packages/create-jorvel:
+    dependencies:
+      jorvel:
+        specifier: workspace:*
+        version: link:../cli
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.19.13
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)
+
+  packages/devtools-extension:
+    devDependencies:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)
@@ -1871,6 +1951,9 @@ packages:
   '@types/bonjour@3.5.13':
     resolution: {integrity: sha512-z9fJ5Im06zvUL548KvYNecEVlA7cVDkGUi6kZusb04mpyEFKCIZJvloCcmpmLaIahDpOQGHaHmG6imtPMmPXGQ==}
 
+  '@types/bun@1.3.14':
+    resolution: {integrity: sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw==}
+
   '@types/connect-history-api-fallback@1.5.4':
     resolution: {integrity: sha512-n6Cr2xS1h4uAulPRdlw6Jl6s1oG8KrVilPN2yUITEs+K48EzMJJ3W1xy8K5eWuFvjp3R74AOIGSmp2UfBJ8HFw==}
 
@@ -2381,6 +2464,9 @@ packages:
     resolution: {integrity: sha512-48xSriZYYg+8qXna9kwqjIVzuQxi+KYWp2+5nCYnYKPTr0LvD89Jqk2Or5ogxz0NUMfIjhh2lIUX/LyX9B4oIg==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
+
+  bun-types@1.3.14:
+    resolution: {integrity: sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ==}
 
   bundle-name@4.1.0:
     resolution: {integrity: sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q==}
@@ -6192,6 +6278,10 @@ snapshots:
     dependencies:
       '@types/node': 22.19.13
 
+  '@types/bun@1.3.14':
+    dependencies:
+      bun-types: 1.3.14
+
   '@types/connect-history-api-fallback@1.5.4':
     dependencies:
       '@types/express-serve-static-core': 4.19.8
@@ -6762,6 +6852,10 @@ snapshots:
       electron-to-chromium: 1.5.343
       node-releases: 2.0.38
       update-browserslist-db: 1.2.3(browserslist@4.28.2)
+
+  bun-types@1.3.14:
+    dependencies:
+      '@types/node': 22.19.13
 
   bundle-name@4.1.0:
     dependencies:

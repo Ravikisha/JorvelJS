@@ -1,19 +1,49 @@
 {
   "name": "@jorvel/adapter-aws-lambda",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AWS Lambda + Lambda@Edge adapter for JORVEL SSR.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",
-  "repository": { "type": "git", "url": "https://github.com/Ravikisha/JorvelJS.git", "directory": "libs/adapter-aws-lambda" },
-  "keywords": ["jorvel", "edge", "ssr", "module-federation"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ravikisha/JorvelJS.git",
+    "directory": "libs/adapter-aws-lambda"
+  },
+  "keywords": [
+    "jorvel",
+    "edge",
+    "ssr",
+    "module-federation"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "publishConfig": { "access": "public" },
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }, "./package.json": "./package.json" },
-  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
-  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run" },
-  "dependencies": { "@jorvel/ssr": "workspace:*" },
-  "devDependencies": { "@types/node": "^22.13.10", "typescript": "^5.7.3" }
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jorvel/ssr": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.7.3"
+  }
 }

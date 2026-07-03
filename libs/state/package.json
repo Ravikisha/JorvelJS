@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/state",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Lightweight shared-state primitives for JORVEL micro-frontends (Redux-style store + simple observable store).",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

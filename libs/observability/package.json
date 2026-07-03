@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/observability",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Telemetry hooks for JORVEL: error reporting, metrics, remote-load tracing, structured logger, Web Vitals.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

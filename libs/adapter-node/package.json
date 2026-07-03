@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/adapter-node",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Node.js HTTP server adapter for JORVEL SSR.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

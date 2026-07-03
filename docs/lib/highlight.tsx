@@ -261,25 +261,31 @@ function highlightBash(src: string): Token[] {
           continue;
         }
         if (/[A-Za-z_]/.test(c)) {
-          const m = /^[A-Za-z_][A-Za-z0-9_-]*/.exec(line.slice(i))!;
-          const w = m[0];
-          // First word of line → command (function color); flags `--foo` or `-f` → attr
-          const isFirst = !line.slice(0, i).trim();
-          out.push({ kind: isFirst ? 'fn' : 'plain', text: w });
-          i += w.length;
-          continue;
+          const m = /^[A-Za-z_][A-Za-z0-9_-]*/.exec(line.slice(i));
+          if (m) {
+            const w = m[0];
+            // First word of line → command (function color); flags `--foo` or `-f` → attr
+            const isFirst = !line.slice(0, i).trim();
+            out.push({ kind: isFirst ? 'fn' : 'plain', text: w });
+            i += w.length;
+            continue;
+          }
         }
         if (c === '-' && /[-A-Za-z]/.test(line[i + 1] ?? '')) {
-          const m = /^-{1,2}[A-Za-z][A-Za-z0-9-]*/.exec(line.slice(i))!;
-          out.push({ kind: 'attr', text: m[0] });
-          i += m[0].length;
-          continue;
+          const m = /^-{1,2}[A-Za-z][A-Za-z0-9-]*/.exec(line.slice(i));
+          if (m) {
+            out.push({ kind: 'attr', text: m[0] });
+            i += m[0].length;
+            continue;
+          }
         }
         if (c === '$' && /[A-Za-z_{]/.test(line[i + 1] ?? '')) {
-          const m = /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/.exec(line.slice(i))!;
-          out.push({ kind: 'builtin', text: m[0] });
-          i += m[0].length;
-          continue;
+          const m = /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/.exec(line.slice(i));
+          if (m) {
+            out.push({ kind: 'builtin', text: m[0] });
+            i += m[0].length;
+            continue;
+          }
         }
         out.push({ kind: 'plain', text: c });
         i++;

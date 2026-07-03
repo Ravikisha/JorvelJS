@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/events",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Shared event-name and payload type registry for JORVEL micro-frontends.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

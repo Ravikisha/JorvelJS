@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/types",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Shared TypeScript types and runtime helpers for JORVEL configs, plugins, and federation contracts.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",

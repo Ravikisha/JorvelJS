@@ -1,18 +1,30 @@
 {
   "name": "@jorvel/i18n",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Tiny i18n primitives for JORVEL micro-frontends — ICU-lite interpolation, lazy catalogs, locale detection.",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./react": { "types": "./dist/react.d.ts", "import": "./dist/react.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -24,7 +36,9 @@
     "react": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true }
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

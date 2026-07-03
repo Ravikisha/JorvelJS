@@ -1,12 +1,22 @@
 {
   "name": "@jorvel/devtools-extension",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Chrome DevTools extension for JORVEL Module Federation (remotes, load timings, share scope).",
   "license": "MIT",
   "private": false,
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "files": ["manifest.json", "devtools.html", "devtools.js", "panel.html", "panel.js", "render.mjs", "README.md"],
+  "files": [
+    "manifest.json",
+    "devtools.html",
+    "devtools.js",
+    "panel.html",
+    "panel.js",
+    "render.mjs",
+    "README.md"
+  ],
   "scripts": {
     "test": "vitest run"
   },

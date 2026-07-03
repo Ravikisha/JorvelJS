@@ -1,6 +1,6 @@
 {
   "name": "@jorvel/security",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Security primitives for JORVEL: CSP builder, SRI hashes, remote allowlist, HTML/JSON sanitization.",
   "license": "MIT",
   "homepage": "https://github.com/Ravikisha/JorvelJS#readme",
