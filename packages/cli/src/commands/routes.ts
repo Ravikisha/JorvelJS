@@ -10,7 +10,9 @@ type JorvelPageRoute = { path: string; file: string };
 
 const defaultRoutingCompiler = {
   routeFromPageFile(relFromPages: string) {
-    let withoutExt = relFromPages.replace(/\.(tsx|ts|jsx|js)$/, '');
+    // Mirror of @jorvel/types PAGE_EXTENSIONS (kept local to avoid a cross-package
+    // source import during compilation). Keep in sync.
+    let withoutExt = relFromPages.replace(/\.(tsx|ts|jsx|js|mjs|cjs)$/i, '');
     withoutExt = withoutExt.replace(/\\/g, '/');
 
     const segs = withoutExt.split('/').filter(Boolean);
@@ -124,7 +126,7 @@ async function scanPages(appDir: string) {
       const abs = path.join(dir, e);
       const st = await fs.stat(abs);
       if (st.isDirectory()) await walk(abs);
-      else if (/\.(tsx|ts|jsx|js)$/.test(e)) files.push(abs);
+      else if (/\.(tsx|ts|jsx|js|mjs|cjs)$/i.test(e)) files.push(abs);
     }
   };
 

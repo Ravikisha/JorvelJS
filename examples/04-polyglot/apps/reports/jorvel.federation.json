@@ -1,0 +1,35 @@
+{
+  "$schema": "../../node_modules/@jorvel/types/schemas/jorvel.federation.json",
+  "name": "reports",
+  "filename": "remoteEntry.js",
+  "exposes": {
+    "./App": "./src/remote.ts"
+  },
+  "shared": {
+    "@jorvel/event-bus": {
+      "singleton": true,
+      "eager": false,
+      "requiredVersion": false
+    },
+    "@angular/core": {
+      "singleton": true,
+      "eager": false,
+      "requiredVersion": false
+    },
+    "@angular/common": {
+      "singleton": true,
+      "eager": false,
+      "requiredVersion": false
+    },
+    "@angular/platform-browser": {
+      "singleton": true,
+      "eager": false,
+      "requiredVersion": false
+    },
+    "rxjs": {
+      "singleton": true,
+      "eager": false,
+      "requiredVersion": false
+    }
+  }
+}

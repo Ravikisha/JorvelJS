@@ -8,6 +8,17 @@
  * - support non-React runtimes
  */
 
+/**
+ * Source extensions a page file may use. React authoring works in any of these;
+ * the bundler's SWC loaders compile all of them. Keep this list the single
+ * source of truth — the CLI mirrors it (see packages/cli/src/commands/routes.ts)
+ * and the generated rspack `resolve.extensions` must be a superset.
+ */
+export const PAGE_EXTENSIONS = ['tsx', 'ts', 'jsx', 'js', 'mjs', 'cjs'] as const;
+
+/** Matches a trailing page extension, e.g. ".tsx" / ".mjs". */
+export const PAGE_EXT_RE = new RegExp(`\\.(${PAGE_EXTENSIONS.join('|')})$`, 'i');
+
 export type JorvelPageRoute = {
   /** Route pathname relative to app base, e.g. "/" or "/reports/:id" */
   path: string;
@@ -48,7 +59,7 @@ export const defaultRoutingCompiler: JorvelRoutingCompiler = {
         '[jorvel/types] routeFromPageFile: empty input. Pass a path relative to src/pages/.',
       );
     }
-    let withoutExt = relFromPages.replace(/\.(tsx|ts|jsx|js)$/, '');
+    let withoutExt = relFromPages.replace(PAGE_EXT_RE, '');
     withoutExt = withoutExt.replace(/\\/g, '/');
 
     const segs = withoutExt.split('/').filter(Boolean);

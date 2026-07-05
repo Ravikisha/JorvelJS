@@ -1,0 +1,10 @@
+{
+  "$schema": "../../node_modules/@jorvel/types/schemas/jorvel.app.json",
+  "name": "pricing",
+  "type": "remote",
+  "port": 3002,
+  "framework": "vue",
+  "exposes": {
+    "./App": "./src/remote.ts"
+  }
+}

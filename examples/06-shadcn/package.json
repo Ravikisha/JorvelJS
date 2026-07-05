@@ -1,0 +1,17 @@
+{
+  "name": "jorvel-example-shadcn",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "JORVEL example — jorvel-example-shadcn",
+  "scripts": {
+    "scaffold": "node scaffold.mjs",
+    "prescaffold": "pnpm -C ../../packages/cli build",
+    "dev": "node ../../packages/cli/dist/index.js dev",
+    "federation": "node ../../packages/cli/dist/index.js federation",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  }
+}

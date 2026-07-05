@@ -155,7 +155,10 @@ describe('jorvel build — build order', () => {
 // fileURLToPath (not URL.pathname) — the latter yields `/C:/…` on Windows, so
 // path.resolve produced a bogus path and distReady was permanently false there,
 // silently skipping all 12 build-output assertions even with the example built.
-const exampleRoot  = path.resolve(fileURLToPath(new URL('../../../examples/basic/', import.meta.url)));
+// Examples are scaffold-based now (no committed apps), so these build-output
+// assertions skip unless a dev has scaffolded + built one. Point at 01-react-ts,
+// which `pnpm scaffold && pnpm build` in that example produces.
+const exampleRoot  = path.resolve(fileURLToPath(new URL('../../../examples/01-react-ts/', import.meta.url)));
 const shellDist    = path.join(exampleRoot, 'apps', 'shell',     'dist');
 const remoteDist   = path.join(exampleRoot, 'apps', 'dashboard', 'dist');
 

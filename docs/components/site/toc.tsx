@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 type Heading = { id: string; text: string; level: 2 | 3 };
@@ -10,12 +11,19 @@ type Heading = { id: string; text: string; level: 2 | 3 };
  * and tracks the current section via IntersectionObserver.
  */
 export function DocsToc({ className }: { className?: string }) {
+  const pathname = usePathname();
   const [headings, setHeadings] = React.useState<Heading[]>([]);
   const [active, setActive] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    // Re-scan whenever the route changes — the App Router keeps this component
+    // mounted across client navigations, so a `[]` effect would go stale.
+    setActive(null);
     const article = document.querySelector('article.prose-jorvel');
-    if (!article) return;
+    if (!article) {
+      setHeadings([]);
+      return;
+    }
     const nodes = Array.from(article.querySelectorAll<HTMLElement>('h2, h3'));
     const list: Heading[] = [];
     for (const node of nodes) {
@@ -47,7 +55,7 @@ export function DocsToc({ className }: { className?: string }) {
     );
     nodes.forEach((n) => observer.observe(n));
     return () => observer.disconnect();
-  }, []);
+  }, [pathname]);
 
   if (headings.length === 0) return null;
 
@@ -61,16 +69,20 @@ export function DocsToc({ className }: { className?: string }) {
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         On this page
       </p>
-      <ul className="space-y-1.5 border-l border-border pl-3 text-sm">
+      <ul className="border-l border-border text-sm">
         {headings.map((h) => (
-          <li key={h.id} className={h.level === 3 ? 'pl-3' : ''}>
+          <li key={h.id}>
             <a
               href={`#${h.id}`}
               className={cn(
-                '-ml-px block border-l border-transparent py-0.5 text-muted-foreground transition-colors hover:text-foreground',
-                active === h.id && 'border-accent text-foreground',
+                // border sits ON the rail for BOTH levels (indent via padding,
+                // not margin) so nested items never sprout an offset line.
+                '-ml-px block border-l-2 border-transparent py-1 leading-snug transition-colors hover:border-foreground/30 hover:text-foreground',
+                h.level === 3 ? 'pl-7' : 'pl-4',
+                active === h.id
+                  ? 'border-accent font-medium text-foreground'
+                  : 'text-muted-foreground',
               )}
-              style={active === h.id ? { marginLeft: '-13px', paddingLeft: '12px' } : undefined}
             >
               {h.text}
             </a>

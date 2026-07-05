@@ -1,0 +1,10 @@
+{
+  "$schema": "../../node_modules/@jorvel/types/schemas/jorvel.app.json",
+  "name": "docs-site",
+  "type": "remote",
+  "port": 3005,
+  "framework": "svelte",
+  "exposes": {
+    "./App": "./src/remote.ts"
+  }
+}

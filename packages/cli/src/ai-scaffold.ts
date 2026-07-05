@@ -101,7 +101,7 @@ pnpm ci                   # typecheck + lint + test + build
 
 This repo ships project-specific skills and subagent definitions under \`.claude/\`:
 
-- \`.claude/skills/\` — invokable via \`/<name>\` (federation-contracts, file-routing, ssr, security, testing)
+- \`.claude/skills/\` — invokable via \`/<name>\` (federation-contracts, file-routing, ssr, security, testing, jorvel-cli, mount-contract)
 - \`.claude/agents/\` — subagent defs (host-builder, remote-builder, federation-auditor, security-reviewer)
 - \`.claude/settings.json\` — permissions defaults
 
@@ -245,6 +245,8 @@ description: Add, modify, or refactor file-based routes inside a JORVEL remote. 
 # File-based routing in JORVEL
 
 Remotes own their sub-tree using a Next-style file convention rooted at \`src/pages/\`. The host knows nothing about a remote's internal routes — it just maps a prefix to the remote.
+
+Page files may use any of \`.tsx .ts .jsx .js .mjs .cjs\` — the scanner treats them identically and the route path never includes the extension.
 
 ## Conventions
 
@@ -609,6 +611,55 @@ jorvel init my-app \\
 - Don't hand-edit generated \`rspack.config.mjs\` or \`mf-shim.js\`.
 - Don't add \`@jorvel/*\` deps via \`npm install\` — use \`pnpm\`.
 `,
+  'mount-contract': `---
+name: mount-contract
+description: The framework-neutral mount contract — how the React host embeds remotes built with ANY framework (React, Vue, Solid, Svelte, Angular). Trigger for cross-framework / polyglot work.
+---
+
+# Cross-framework remotes (mount contract)
+
+This workspace is **polyglot**: the host is always React (it owns the two-tier
+router + shell), and each remote can be built with a different framework. They
+interoperate through the framework-neutral \`@jorvel/mount\` contract — the host
+never imports a remote's framework.
+
+## The contract
+
+A remote exposes \`./App\` as a **mount module**, not a component:
+
+\`\`\`ts
+interface JorvelMountModule {
+  mount(ctx: JorvelMountContext): void | (() => void) | Promise<void | (() => void)>;
+  unmount?(el: HTMLElement): void;
+}
+interface JorvelMountContext {
+  el: HTMLElement;                 // the node the remote owns
+  subpath: string;                 // path relative to the mount prefix
+  basePath: string;                // the prefix the host mounted under
+  params: Record<string, string>;  // route params
+  props?: Record<string, unknown>;
+  signal?: AbortSignal;            // aborted on unmount / navigation
+}
+\`\`\`
+
+## Per-framework authoring
+
+| Framework | Expose \`./App\` with |
+|---|---|
+| React   | \`defineReactRemote(Root)\` — \`@jorvel/adapter-react\` (or legacy: default-export a component) |
+| Vue 3   | \`defineVueRemote(Root)\` — \`@jorvel/adapter-vue\` |
+| SolidJS | \`defineSolidRemote(Root)\` — \`@jorvel/adapter-solid\` |
+| Svelte 5| \`defineSvelteRemote(Root)\` — \`@jorvel/adapter-svelte\` |
+| Angular | \`defineAngularRemote(RootComponent)\` — \`@jorvel/adapter-angular\` |
+
+## Rules
+
+- Generate a remote with a specific framework: \`jorvel generate remote <name> --framework <fw>\` (interactive prompt picks one otherwise). Each app also gets its own \`.claude/skills/<fw>-remote.md\`.
+- The host's \`RemoteOutlet\` auto-detects a mount module and bridges it into a DOM node; a React-component default still renders inline (back-compat).
+- Cross-app communication is framework-neutral: use \`@jorvel/event-bus\` / \`@jorvel/state\` or DOM \`CustomEvent\`s — never a shared framework context.
+- Federation shares each app's OWN framework runtime as a singleton (React shares react/react-dom; a Vue remote shares vue). Polyglot means a heavier baseline — only mix frameworks when you actually need to.
+- Full guide: https://jorveljs.vercel.app/docs/cross-framework
+`,
 };
 
 const AGENTS: Record<string, string> = {
@@ -871,50 +922,129 @@ const CLAUDE_SETTINGS = {
   },
 };
 
+const WINDSURFRULES = (projectName: string) => `# ${projectName} — Windsurf / Cascade rules
+
+This is a JORVEL micro-frontend workspace. Full agent guidance is in \`AGENTS.md\`
+(provider-neutral) — read it first. Highlights:
+
+- Package manager: pnpm. Never run \`npm install\`.
+- Host owns top-level routes; remotes own sub-paths. Federation config in
+  \`jorvel.federation.json\` per app (generate with \`jorvel federation\`).
+- File-based routes under \`apps/<app>/src/pages/\`; run \`jorvel routes\` after adding.
+- React is a shared singleton — never import a second copy; keep the async
+  boundary in \`src/main.*\` (\`import('./bootstrap')\`).
+- Data: \`defineLoader\` (reads) / \`defineAction\` (writes) / \`useQuery\`. Auth:
+  \`@jorvel/security\` sessions + \`createRbac\`. Validate action inputs.
+- Before finishing: \`jorvel typecheck && jorvel lint && jorvel test\` and, for
+  federation changes, \`jorvel federation diff --base main\`.
+`;
+
+const GEMINI_MD = (projectName: string) => `# ${projectName} — Gemini CLI context
+
+JORVEL micro-frontend workspace. See \`AGENTS.md\` for the full, provider-neutral
+agent guide (architecture, conventions, commands). Quick facts:
+
+- pnpm workspace; apps under \`apps/*\`, shared libs under \`libs/*\`.
+- \`jorvel dev\` runs everything; \`jorvel generate\`, \`jorvel add\`,
+  \`jorvel federation\`, \`jorvel deploy\` are the main CLI verbs.
+- Docs + API reference: https://jorveljs.vercel.app/docs
+- A docs MCP server is available (\`@jorvel/mcp-docs\`) — see \`.mcp.json\`.
+`;
+
+const MCP_JSON = {
+  mcpServers: {
+    'jorvel-docs': {
+      command: 'npx',
+      args: ['-y', '@jorvel/mcp-docs'],
+    },
+  },
+};
+
+/** AI coding tools the scaffold can target. */
+export type AiTool = 'claude' | 'codex' | 'cursor' | 'copilot' | 'windsurf' | 'gemini' | 'mcp';
+
+export const ALL_AI_TOOLS: AiTool[] = ['claude', 'codex', 'cursor', 'copilot', 'windsurf', 'gemini', 'mcp'];
+
 export interface ScaffoldAiOptions {
   workspaceDir: string;
   projectName: string;
+  /** Which tools to scaffold. Defaults to all. */
+  tools?: AiTool[];
 }
 
-export async function writeAiAgentScaffold(opts: ScaffoldAiOptions): Promise<void> {
+export async function writeAiAgentScaffold(opts: ScaffoldAiOptions): Promise<string[]> {
   const { workspaceDir, projectName } = opts;
+  const tools = new Set(opts.tools ?? ALL_AI_TOOLS);
+  const written: string[] = [];
+  const rel = (p: string) => path.relative(workspaceDir, p);
+  const put = async (p: string, fn: () => Promise<void>) => { await fn(); written.push(rel(p)); };
 
-  // Root-level entry points
-  await writeText(path.join(workspaceDir, 'CLAUDE.md'), CLAUDE_MD(projectName));
-  await writeText(path.join(workspaceDir, 'AGENTS.md'), AGENTS_MD(projectName));
-  await writeText(path.join(workspaceDir, '.cursorrules'), CURSORRULES(projectName));
-
-  // GitHub Copilot
-  await writeText(
-    path.join(workspaceDir, '.github', 'copilot-instructions.md'),
-    COPILOT_INSTRUCTIONS(projectName),
-  );
-
-  // Claude Code: skills + agents + settings
-  const claudeDir = path.join(workspaceDir, '.claude');
-  await writeJson(path.join(claudeDir, 'settings.json'), CLAUDE_SETTINGS);
-
-  for (const [name, body] of Object.entries(SKILLS)) {
-    await writeText(path.join(claudeDir, 'skills', `${name}.md`), body);
-  }
-  for (const [name, body] of Object.entries(AGENTS)) {
-    await writeText(path.join(claudeDir, 'agents', `${name}.md`), body);
+  // AGENTS.md — the provider-neutral base (Codex, Aider, Continue, Windsurf,
+  // Gemini all read it). Write it whenever any neutral tool is selected.
+  if (tools.has('codex') || tools.has('windsurf') || tools.has('gemini') || tools.has('cursor')) {
+    const p = path.join(workspaceDir, 'AGENTS.md');
+    await put(p, () => writeText(p, AGENTS_MD(projectName)));
   }
 
-  // README in each dir so the structure is self-documenting
-  await writeText(
-    path.join(claudeDir, 'README.md'),
-    [
+  // Claude Code — CLAUDE.md + .claude/{settings,skills,agents}
+  if (tools.has('claude')) {
+    const claudeMd = path.join(workspaceDir, 'CLAUDE.md');
+    await put(claudeMd, () => writeText(claudeMd, CLAUDE_MD(projectName)));
+    const claudeDir = path.join(workspaceDir, '.claude');
+    const settings = path.join(claudeDir, 'settings.json');
+    await put(settings, () => writeJson(settings, CLAUDE_SETTINGS));
+    for (const [name, body] of Object.entries(SKILLS)) {
+      const p = path.join(claudeDir, 'skills', `${name}.md`);
+      await put(p, () => writeText(p, body));
+    }
+    for (const [name, body] of Object.entries(AGENTS)) {
+      const p = path.join(claudeDir, 'agents', `${name}.md`);
+      await put(p, () => writeText(p, body));
+    }
+    const readme = path.join(claudeDir, 'README.md');
+    await put(readme, () => writeText(readme, [
       '# Claude Code project config',
       '',
-      'This directory is read by [Claude Code](https://claude.com/claude-code).',
+      'Read by [Claude Code](https://claude.com/claude-code).',
       '',
       '- `settings.json` — permissions defaults + env',
-      '- `skills/*.md` — invokable skills (`/<name>` inside Claude Code)',
-      '- `agents/*.md` — subagent definitions (invoked by name or via the agent picker)',
+      '- `skills/*.md` — invokable skills (`/<name>`)',
+      '- `agents/*.md` — subagent definitions',
       '',
-      'Pair this with the workspace-level `CLAUDE.md` for project-wide instructions.',
+      'Pair with the workspace `CLAUDE.md` and the `jorvel-docs` MCP server (`.mcp.json`).',
       '',
-    ].join('\n'),
-  );
+    ].join('\n')));
+  }
+
+  // Cursor
+  if (tools.has('cursor')) {
+    const p = path.join(workspaceDir, '.cursorrules');
+    await put(p, () => writeText(p, CURSORRULES(projectName)));
+  }
+
+  // GitHub Copilot
+  if (tools.has('copilot')) {
+    const p = path.join(workspaceDir, '.github', 'copilot-instructions.md');
+    await put(p, () => writeText(p, COPILOT_INSTRUCTIONS(projectName)));
+  }
+
+  // Windsurf
+  if (tools.has('windsurf')) {
+    const p = path.join(workspaceDir, '.windsurfrules');
+    await put(p, () => writeText(p, WINDSURFRULES(projectName)));
+  }
+
+  // Gemini CLI
+  if (tools.has('gemini')) {
+    const p = path.join(workspaceDir, 'GEMINI.md');
+    await put(p, () => writeText(p, GEMINI_MD(projectName)));
+  }
+
+  // Docs MCP server config (Claude Code, Cursor, Windsurf, and any MCP client)
+  if (tools.has('mcp')) {
+    const p = path.join(workspaceDir, '.mcp.json');
+    await put(p, () => writeJson(p, MCP_JSON));
+  }
+
+  return written;
 }

@@ -1,0 +1,30 @@
+{
+  "host": "shell",
+  "routes": [
+    {
+      "path": "/dashboard/*",
+      "remote": "dashboard",
+      "module": "./App"
+    },
+    {
+      "path": "/pricing/*",
+      "remote": "pricing",
+      "module": "./App"
+    },
+    {
+      "path": "/reports/*",
+      "remote": "reports",
+      "module": "./App"
+    },
+    {
+      "path": "/widgets/*",
+      "remote": "widgets",
+      "module": "./App"
+    },
+    {
+      "path": "/docs-site/*",
+      "remote": "docs-site",
+      "module": "./App"
+    }
+  ]
+}

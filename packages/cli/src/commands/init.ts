@@ -6,8 +6,18 @@ import { promisify } from 'node:util';
 import fs from 'fs-extra';
 import kleur from 'kleur';
 import { buildCiWorkflow, buildPreviewWorkflow, buildDeployWorkflow } from './ci.js';
-import { confirm, select } from '@inquirer/prompts';
-import { writeAiAgentScaffold } from '../ai-scaffold.js';
+import { confirm, select, checkbox } from '@inquirer/prompts';
+import { writeAiAgentScaffold, ALL_AI_TOOLS, type AiTool } from '../ai-scaffold.js';
+
+const AI_TOOL_CHOICES: { value: AiTool; name: string }[] = [
+  { value: 'claude', name: 'Claude Code (CLAUDE.md + .claude/ skills & agents)' },
+  { value: 'codex', name: 'OpenAI Codex / neutral agents (AGENTS.md)' },
+  { value: 'cursor', name: 'Cursor (.cursorrules)' },
+  { value: 'copilot', name: 'GitHub Copilot (.github/copilot-instructions.md)' },
+  { value: 'windsurf', name: 'Windsurf (.windsurfrules)' },
+  { value: 'gemini', name: 'Gemini CLI (GEMINI.md)' },
+  { value: 'mcp', name: 'Docs MCP server (.mcp.json → @jorvel/mcp-docs)' },
+];
 import { writeWorkspaceExtras } from '../scaffold-extras.js';
 
 const execFileP = promisify(execFile);
@@ -107,8 +117,10 @@ export const initCommand = new Command('init')
   .option('--template <name>', 'Starter template: host-remote | saas | blank', 'host-remote')
   .option('--license <spdx>', 'License to write: MIT | Apache-2.0 | none', 'MIT')
   .option('--no-git', 'Skip running `git init` after scaffolding')
-  .option('--no-ai', 'Skip AI coding-agent config (CLAUDE.md, .claude/, .cursorrules, copilot-instructions.md)')
-  .action(async (name: string, opts: { dir: string; yes?: boolean; tailwind?: boolean; pm?: string; template?: string; license?: string; git?: boolean; ai?: boolean }) => {
+  .option('--no-ai', 'Skip all AI coding-agent config')
+  .option('--no-app', 'Create a bare workspace only — do not scaffold the starter host + remote')
+  .option('--ai <tools>', 'Comma-separated AI tools: claude,codex,cursor,copilot,windsurf,gemini,mcp (default: all)')
+  .action(async (name: string, opts: { dir: string; yes?: boolean; tailwind?: boolean; pm?: string; template?: string; license?: string; git?: boolean; ai?: boolean | string; app?: boolean }) => {
     // Workspace name = package.json name + folder name. npm enforces lowercase
     // ASCII, may start with a letter or digit, may contain `.`/`_`/`-`, max 214.
     // We're stricter: must start with a letter so the folder is a valid JS
@@ -263,13 +275,9 @@ export const initCommand = new Command('init')
       );
     }
 
-    // Assets — logo (dark + light) + favicon. Logos live under assets/, favicon
-    // duplicated into apps/<host>/public/ later by `jorvel generate host`.
-    await copyTemplateAsset('logo.svg', path.join(workspaceDir, 'assets', 'logo.svg'));
-    await copyTemplateAsset(
-      'logo-light.svg',
-      path.join(workspaceDir, 'assets', 'logo-light.svg'),
-    );
+    // Brand assets — the JORVEL logo (logojorvel.png) + favicon. The logo lives
+    // under assets/, favicon duplicated into apps/<host>/public/ later by
+    // `jorvel generate host`.
     await copyTemplateAsset(
       'favicon.ico',
       path.join(workspaceDir, 'assets', 'favicon.ico'),
@@ -496,15 +504,27 @@ export const initCommand = new Command('init')
       buildDeployWorkflow({ ...wfOpts, target: 'netlify' })
     );
 
-    // AI coding-agent scaffold (skippable with --no-ai). Commander maps --no-ai to opts.ai === false.
-    const wantAi = opts.ai !== false;
-    if (wantAi) {
-      await writeAiAgentScaffold({ workspaceDir, projectName: name });
-      console.log(
-        kleur.gray(
-          'Wrote CLAUDE.md, .claude/{skills,agents}/, .cursorrules, .github/copilot-instructions.md.',
-        ),
-      );
+    // AI coding-tool scaffold. `--no-ai` → none · `--ai a,b` → those ·
+    // interactive → checkbox picker · otherwise all.
+    let aiTools: AiTool[];
+    if (opts.ai === false) {
+      aiTools = [];
+    } else if (typeof opts.ai === 'string') {
+      aiTools = opts.ai
+        .split(',')
+        .map((s) => s.trim())
+        .filter((t): t is AiTool => (ALL_AI_TOOLS as string[]).includes(t));
+    } else if (interactive) {
+      aiTools = await checkbox<AiTool>({
+        message: 'Generate AI coding-tool support for?',
+        choices: AI_TOOL_CHOICES.map((c) => ({ ...c, checked: true })),
+      });
+    } else {
+      aiTools = ALL_AI_TOOLS;
+    }
+    if (aiTools.length) {
+      const files = await writeAiAgentScaffold({ workspaceDir, projectName: name, tools: aiTools });
+      console.log(kleur.gray(`AI config (${aiTools.join(', ')}) — ${files.length} files.`));
     }
 
     // Editor config, GitHub community health files, issue/PR templates, CodeQL +
@@ -535,11 +555,37 @@ export const initCommand = new Command('init')
       }
     }
 
-    // ── "What now?" success screen ────────────────────────────────────────
+    // ── Scaffold the starter app (host + remote) so `init` yields a running
+    //    federated app out of the box — the create-next-app experience. Each
+    //    generated remote auto-wires into the host (federation + routes + REMOTES).
     const apps = templateApps(template);
-    const steps: string[] = [`cd ${name}`, pmInstall(pm)];
-    for (const a of apps) steps.push(`jorvel ${a.cmd}`);
-    if (apps.length) steps.push('jorvel federation', pmRun(pm, 'dev'));
+    const scaffoldApps = opts.app !== false && apps.length > 0;
+    if (scaffoldApps) {
+      const { buildGenerateCommand } = await import('./generate.js');
+      const twArgs = enableTailwind ? ['--tailwind'] : ['--no-tailwind'];
+      const runGen = async (argv: string[]) => {
+        const gen = buildGenerateCommand();
+        gen.exitOverride();
+        await gen.parseAsync(argv, { from: 'user' });
+      };
+      console.log('');
+      console.log(kleur.cyan('Scaffolding starter app…'));
+      // Parse the template's `generate …` command strings into argv + run them.
+      // Host first (owns the shell), then each remote (auto-wires into the host).
+      for (const a of apps) {
+        // a.cmd is e.g. "generate remote dashboard --port 3001"; buildGenerateCommand()
+        // IS the `generate` command, so drop the leading "generate" token.
+        const argv = a.cmd.split(' ').slice(1).concat('--dir', workspaceDir, '--lang', 'ts', ...twArgs);
+        // Remotes are React by default in the starter; host ignores --framework.
+        if (a.cmd.startsWith('generate remote')) argv.push('--framework', 'react');
+        await runGen(argv);
+      }
+    }
+
+    // ── "What now?" success screen ────────────────────────────────────────
+    const steps: string[] = scaffoldApps
+      ? [`cd ${name}`, pmInstall(pm), pmRun(pm, 'dev')]
+      : [`cd ${name}`, pmInstall(pm), ...apps.map((a) => `jorvel ${a.cmd}`), ...(apps.length ? ['jorvel federation', pmRun(pm, 'dev')] : [])];
 
     const bar = kleur.green('─'.repeat(52));
     console.log('');

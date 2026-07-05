@@ -1,0 +1,6 @@
+.card {
+  padding: 16px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+}
+.title { margin: 0 0 8px; font-weight: 600; }

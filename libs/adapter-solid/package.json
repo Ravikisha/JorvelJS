@@ -1,0 +1,41 @@
+{
+  "name": "@jorvel/adapter-solid",
+  "version": "0.3.0",
+  "description": "SolidJS adapter for the JORVEL mount contract — expose a Solid remote as a framework-neutral mount module.",
+  "license": "MIT",
+  "homepage": "https://github.com/Ravikisha/JorvelJS#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ravikisha/JorvelJS.git",
+    "directory": "libs/adapter-solid"
+  },
+  "keywords": ["jorvel", "solid", "solidjs", "micro-frontend", "module-federation", "mount", "adapter"],
+  "private": false,
+  "publishConfig": { "access": "public" },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js" },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jorvel/mount": "workspace:*"
+  },
+  "peerDependencies": {
+    "solid-js": "^1.8.0"
+  },
+  "devDependencies": {
+    "solid-js": "^1.9.3",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
+  }
+}

@@ -87,6 +87,11 @@ export default function App() {
       />
 
       <p>
+        Page files can be authored as <code>.tsx</code>, <code>.ts</code>, <code>.jsx</code>,{' '}
+        <code>.js</code>, <code>.mjs</code>, or <code>.cjs</code> — the scanner treats them the same
+        and the route path never carries the extension (<code>index.mjs</code> → <code>/</code>).
+      </p>
+      <p>
         Run <code>jorvel routes</code> to compile this tree into <code>src/jorvel.routes.ts</code> and pass it to{' '}
         <code>RemoteApp</code>:
       </p>

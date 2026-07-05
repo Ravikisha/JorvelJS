@@ -1,0 +1,9 @@
+{
+  "$schema": "../../node_modules/@jorvel/types/schemas/jorvel.app.json",
+  "name": "ui",
+  "type": "remote",
+  "port": 3001,
+  "exposes": {
+    "./App": "./src/remote.tsx"
+  }
+}

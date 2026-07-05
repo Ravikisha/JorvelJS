@@ -108,6 +108,12 @@ jorvel generate remote dashboard --tailwind
 | `packages/create-jorvel` | [`create-jorvel`](https://www.npmjs.com/package/create-jorvel) | `npm create jorvel` scaffolder |
 | `packages/devtools-extension` | [`@jorvel/devtools-extension`](https://www.npmjs.com/package/@jorvel/devtools-extension) | Chrome/Firefox DevTools panel for federation state |
 | `libs/runtime` | [`@jorvel/runtime`](https://www.npmjs.com/package/@jorvel/runtime) | Router, routing components, hooks, remote loader, prefetch, islands, View Transitions, Shadow DOM, image, fonts |
+| `libs/mount` | [`@jorvel/mount`](https://www.npmjs.com/package/@jorvel/mount) | Framework-neutral remote mount contract (`mount(ctx)`/`unmount`) — embed remotes built with any framework |
+| `libs/adapter-react` | [`@jorvel/adapter-react`](https://www.npmjs.com/package/@jorvel/adapter-react) | Expose a React remote as a neutral mount module (`defineReactRemote`) |
+| `libs/adapter-vue` | [`@jorvel/adapter-vue`](https://www.npmjs.com/package/@jorvel/adapter-vue) | Expose a Vue 3 remote (`defineVueRemote`) |
+| `libs/adapter-solid` | [`@jorvel/adapter-solid`](https://www.npmjs.com/package/@jorvel/adapter-solid) | Expose a SolidJS remote (`defineSolidRemote`) |
+| `libs/adapter-svelte` | [`@jorvel/adapter-svelte`](https://www.npmjs.com/package/@jorvel/adapter-svelte) | Expose a Svelte 5 remote (`defineSvelteRemote`) |
+| `libs/adapter-angular` | [`@jorvel/adapter-angular`](https://www.npmjs.com/package/@jorvel/adapter-angular) | Expose a standalone Angular component (`defineAngularRemote`) |
 | `libs/ssr` | [`@jorvel/ssr`](https://www.npmjs.com/package/@jorvel/ssr) | `renderRouteToString`, streaming SSR, static export, edge adapter, loaders, fragments, request context |
 | `libs/security` | [`@jorvel/security`](https://www.npmjs.com/package/@jorvel/security) | CSP, SRI, origin allowlist, rate limit, audit log, OAuth helpers, sanitize |
 | `libs/observability` | [`@jorvel/observability`](https://www.npmjs.com/package/@jorvel/observability) | Hooks, structured logger, Web Vitals, Sentry / OTel / console adapters, RUM beacon |
@@ -129,7 +135,7 @@ jorvel generate remote dashboard --tailwind
 | `libs/prettier-config` | [`@jorvel/prettier-config`](https://www.npmjs.com/package/@jorvel/prettier-config) | Shared Prettier config |
 | `libs/tsconfig` | [`@jorvel/tsconfig`](https://www.npmjs.com/package/@jorvel/tsconfig) | Shared TypeScript presets |
 | `docs/` | — | Documentation site (Next.js 16) |
-| `examples/basic` | — | Runnable host + remote example |
+| `examples/*` | — | 7 Tailwind-styled examples: vanilla .mjs, React, polyglot (React+Vue+Angular), SSR, feature tour, all-libraries, shadcn/ui |
 
 ---
 

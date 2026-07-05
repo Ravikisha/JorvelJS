@@ -69,3 +69,4 @@ test-results/
 *.bak
 *.tmp
 .eslintcache
+.npmrc

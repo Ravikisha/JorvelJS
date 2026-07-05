@@ -97,37 +97,36 @@ export default function GettingStarted() {
         No install — open a starter in a StackBlitz sandbox and edit live:
       </p>
       <ul>
-        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/basic">Basic (host + remote)</a></li>
-        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/saas">SaaS (dashboard + marketing)</a></li>
-        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/ecommerce">E-commerce</a></li>
+        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/02-react">React micro-frontend</a></li>
+        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/04-ssr">SSR + streaming + loaders</a></li>
+        <li><a href="https://stackblitz.com/github/Ravikisha/JorvelJS/tree/main/examples/07-shadcn-ui">shadcn/ui page</a></li>
       </ul>
 
       <h2 id="walkthrough">Walkthrough</h2>
 
       <Steps>
-        <Step title="Initialize a workspace" active>
+        <Step title="Create a running app" active>
           <p className="mt-2">
-            <code>jorvel init</code> writes <code>jorvel.config.json</code> (the single config the
-            CLI loads), a <code>.env.example</code>, a workspace{' '}
-            <code>tsconfig.base.json</code>, <code>pnpm-workspace.yaml</code>, a{' '}
-            <code>.gitignore</code>, GitHub Actions for CI (<code>typecheck</code> →{' '}
-            <code>lint</code> → <code>test</code> → <code>perf budget</code>), and a deploy
-            workflow scaffolded for the target you pick. Add <code>--tailwind</code> to wire
-            Tailwind v3 + PostCSS in every generated app.
+            <code>jorvel init</code> scaffolds a <strong>complete, runnable app</strong> — the
+            workspace (config, CI, deploy workflow, tooling) <em>plus</em> a starter React{' '}
+            <strong>host + remote</strong>, already wired together. Like <code>create-next-app</code>:
+            init, install, run. Add <code>--tailwind</code> for Tailwind; <code>--no-app</code> for a
+            bare workspace.
           </p>
           <CodeBlock
             language="bash"
-            code={`pnpm dlx jorvel@latest init my-app\ncd my-app\n\n# Inspect the new workspace\nls\n# .github/  .vscode/  apps/  libs/  jorvel.config.json  .env.example  package.json  pnpm-workspace.yaml  tsconfig.base.json`}
+            code={`pnpm dlx jorvel@latest init my-app\ncd my-app\npnpm install\npnpm dev            # host on :3000, loads the dashboard remote\n# → apps/shell (host) + apps/dashboard (remote), federated + running`}
           />
         </Step>
-        <Step title="Generate a host and a remote">
+        <Step title="Add more remotes — auto-wired">
           <p className="mt-2">
-            Use the wizard for guided scaffolding, or pass flags directly. App names must match{' '}
-            <code>/^[a-z][a-z0-9-]*$/</code>; ports must fit 1–65535.
+            Each new remote is <strong>automatically configured into the host</strong> — federation
+            config, host route table, and the host&apos;s <code>REMOTES</code> map all updated. Pick
+            a framework + language at the prompt, or pass flags. No manual wiring.
           </p>
           <CodeBlock
             language="bash"
-            code={`# Wizard (recommended on first run)\njorvel scaffold app\n\n# Non-interactive\njorvel generate host shell --port 3000\njorvel generate remote dashboard --port 3001\njorvel federation`}
+            code={`jorvel generate remote pricing            # interactive: framework? · js/ts? · Tailwind?\njorvel generate remote billing --framework vue --lang ts\n# both are now mounted in the host at /pricing/* and /billing/* — just refresh`}
           />
         </Step>
         <Step title="Run the dev server">

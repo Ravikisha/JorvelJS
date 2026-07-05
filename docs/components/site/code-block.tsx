@@ -51,17 +51,19 @@ export function CodeBlock({
       )}
     >
       {(filename || language) && (
-        <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-4 py-2">
-          <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] py-2 pl-4 pr-11">
+          <div className="flex min-w-0 items-center gap-2 text-xs">
             <span className="flex gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-500/70" />
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/70" />
             </span>
-            {filename && <span className="ml-3 text-zinc-300">{filename}</span>}
+            {filename && <span className="ml-3 truncate text-zinc-300">{filename}</span>}
           </div>
           {language && (
-            <span className="text-[10px] uppercase tracking-wide text-zinc-500">{language}</span>
+            <span className="ml-2 shrink-0 text-[10px] uppercase tracking-wide text-zinc-500">
+              {language}
+            </span>
           )}
         </div>
       )}
@@ -105,7 +107,7 @@ export function CodeBlock({
         size="icon"
         onClick={onCopy}
         aria-label={copied ? 'Copied' : 'Copy code'}
-        className="absolute right-3 top-3 h-8 w-8 text-zinc-400 opacity-0 hover:bg-white/10 hover:text-white group-hover:opacity-100"
+        className="absolute right-2 top-2 h-7 w-7 text-zinc-400 opacity-0 transition hover:bg-white/10 hover:text-white focus-visible:opacity-100 group-hover:opacity-100"
       >
         {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
       </Button>

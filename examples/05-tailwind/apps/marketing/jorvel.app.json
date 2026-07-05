@@ -1,0 +1,9 @@
+{
+  "$schema": "../../node_modules/@jorvel/types/schemas/jorvel.app.json",
+  "name": "marketing",
+  "type": "remote",
+  "port": 3001,
+  "exposes": {
+    "./App": "./src/remote.tsx"
+  }
+}

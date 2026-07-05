@@ -1,8 +1,0 @@
-{
-  "name": "dashboard",
-  "type": "remote",
-  "port": 3001,
-  "exposes": {
-    "./App": "./src/remote.tsx"
-  }
-}

@@ -1,0 +1,10 @@
+{
+  "host": "shell",
+  "routes": [
+    {
+      "path": "/storefront/*",
+      "remote": "storefront",
+      "module": "./App"
+    }
+  ]
+}

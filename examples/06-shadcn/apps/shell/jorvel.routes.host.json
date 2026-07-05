@@ -1,0 +1,10 @@
+{
+  "host": "shell",
+  "routes": [
+    {
+      "path": "/ui/*",
+      "remote": "ui",
+      "module": "./App"
+    }
+  ]
+}

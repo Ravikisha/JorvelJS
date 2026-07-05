@@ -5,6 +5,8 @@ export interface AppMeta {
   name: string;
   type: 'host' | 'remote';
   port: number;
+  /** UI framework — hosts are always 'react'; remotes may use any. Absent = react. */
+  framework?: 'react' | 'vue' | 'solid' | 'svelte' | 'angular';
   exposes?: Record<string, string>;
 }
 

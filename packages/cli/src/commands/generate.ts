@@ -8,12 +8,26 @@ import { JorvelCliError } from '../errors.js';
 import { findHostApp } from '../discovery.js';
 import { writeRemotesDts } from '../remotes-dts.js';
 import { attachStorybook } from './generate-storybook.js';
+import {
+  FRAMEWORK_CHOICES,
+  getFrameworkSpec,
+  isFrameworkId,
+  type FrameworkId,
+} from '../frameworks/registry.js';
+import { scaffoldFrameworkRemote } from '../frameworks/scaffold.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.resolve(HERE, '../../templates');
 
 type TailwindMode = 'off' | 'on';
 export type AppLang = 'ts' | 'js';
+
+/**
+ * Version range for `@jorvel/*` deps in GENERATED apps. Uses a published semver
+ * (not `workspace:*`) so scaffolded apps install from npm for external users;
+ * in this monorepo, `link-workspace-packages` (see .npmrc) links the local copy.
+ */
+export const JORVEL_DEP_VERSION = '^0.3.0';
 
 function langExts(lang: AppLang) {
   return {
@@ -113,8 +127,8 @@ async function scaffoldReactRspackApp(
     format: 'prettier --write "src/**/*.{ts,tsx,js,jsx,css,json,md}"',
     'format:check': 'prettier --check "src/**/*.{ts,tsx,js,jsx,css,json,md}"',
 
-    // Tests
-    test: 'vitest run',
+    // Tests (--passWithNoTests so a host with no page tests never fails CI)
+    test: 'vitest run --passWithNoTests',
     'test:watch': 'vitest',
     'test:coverage': 'vitest run --coverage',
     'test:ui': 'vitest --ui',
@@ -128,7 +142,7 @@ async function scaffoldReactRspackApp(
     '@rspack/cli': '^1.5.0',
     '@rspack/core': '^1.5.0',
     '@rspack/dev-server': '^1.1.0',
-    '@pmmmwh/react-refresh-webpack-plugin': '^0.6.0',
+    '@rspack/plugin-react-refresh': '^1.0.0',
     'react-refresh': '^0.14.2',
     '@jorvel/eslint-config': '^0.1.0',
     '@jorvel/prettier-config': '^0.1.0',
@@ -158,8 +172,8 @@ async function scaffoldReactRspackApp(
     dependencies: {
       react: '^18.3.1',
       'react-dom': '^18.3.1',
-      '@jorvel/event-bus': 'workspace:*',
-      '@jorvel/runtime': 'workspace:*',
+      '@jorvel/event-bus': JORVEL_DEP_VERSION,
+      '@jorvel/runtime': JORVEL_DEP_VERSION,
     },
     devDependencies: baseDevDeps,
     prettier: '@jorvel/prettier-config',
@@ -168,9 +182,10 @@ async function scaffoldReactRspackApp(
   if (tailwind === 'on') {
     pkg['devDependencies'] = {
       ...(pkg['devDependencies'] as Record<string, string>),
-      tailwindcss: '^3.4.17',
+      tailwindcss: '^4.0.0',
+      '@tailwindcss/postcss': '^4.0.0',
       postcss: '^8.5.1',
-      autoprefixer: '^10.4.20',
+      'postcss-loader': '^8.1.1',
     };
   }
 
@@ -364,9 +379,15 @@ async function scaffoldReactRspackApp(
       "import HomePage from './index.js';",
       '',
       `describe('${name} — HomePage', () => {`,
-      "  it('renders the home heading', () => {",
+      "  it('renders the starter heading', () => {",
       '    render(<HomePage />);',
-      "    expect(screen.getByRole('heading', { name: /home/i })).toBeInTheDocument();",
+      "    expect(screen.getByRole('heading', { name: /it works/i })).toBeInTheDocument();",
+      '  });',
+      '',
+      "  it('the counter button is interactive', async () => {",
+      '    render(<HomePage />);',
+      "    const btn = screen.getByRole('button');",
+      "    expect(btn).toHaveTextContent(/clicked 0 times/i);",
       '  });',
       '});',
       '',
@@ -387,14 +408,9 @@ async function scaffoldReactRspackApp(
   if (await fs.pathExists(sharedFavicon)) {
     await fs.copyFile(sharedFavicon, path.join(appDir, 'public', 'favicon.ico'));
   }
-  const sharedLogo = path.join(TEMPLATES_DIR, 'assets', 'logo.svg');
-  if (await fs.pathExists(sharedLogo)) {
-    await fs.copyFile(sharedLogo, path.join(appDir, 'public', 'logo.svg'));
-  }
-  const sharedLogoLight = path.join(TEMPLATES_DIR, 'assets', 'logo-light.svg');
-  if (await fs.pathExists(sharedLogoLight)) {
-    await fs.copyFile(sharedLogoLight, path.join(appDir, 'public', 'logo-light.svg'));
-  }
+  // The current JORVEL logo (logojorvel.png) — used by index.html favicon + the
+  // welcome screen. (The old logo.svg / logo-light.svg are intentionally not
+  // shipped; logojorvel.png is the single source of brand truth.)
   const sharedLogoPng = path.join(TEMPLATES_DIR, 'assets', 'logojorvel.png');
   if (await fs.pathExists(sharedLogoPng)) {
     await fs.copyFile(sharedLogoPng, path.join(appDir, 'public', 'logojorvel.png'));
@@ -461,12 +477,50 @@ async function scaffoldReactRspackApp(
       '',
       'Both files are part of your app — edit them directly. See [the docs](https://jorveljs.vercel.app/docs/error-pages) for override patterns.',
       '',
-      '## Run',
+      '## Getting started',
       '',
       '```sh',
-      'pnpm install',
-      'pnpm dev    # http://localhost:' + port,
+      'pnpm install        # from the workspace root, once',
+      'pnpm dev            # this app on http://localhost:' + port + ' (Rspack dev server + HMR)',
       '```',
+      '',
+      'Run the whole workspace (host + all remotes) from the root instead:',
+      '',
+      '```sh',
+      'jorvel dev --proxy-remotes --hmr-remotes',
+      '```',
+      '',
+      '## Development',
+      '',
+      '- `pnpm dev` — start the dev server with hot reload.',
+      '- Add pages under `src/pages/` (file-based: `index`, `[id]`, `(group)/`), then run `jorvel routes` (or `jorvel routes --watch`) to regenerate the route table.',
+      '- Wire a database with `jorvel add db`, or Storybook with `jorvel generate storybook`.',
+      '',
+      '## Production build',
+      '',
+      '```sh',
+      'pnpm build          # bundle into dist/ (content-hashed assets)',
+      'pnpm start          # preview the production build locally',
+      '```',
+      '',
+      '## Testing & quality',
+      '',
+      '```sh',
+      'pnpm test           # Vitest (jsdom + React Testing Library)',
+      'pnpm test:watch     # watch mode',
+      'pnpm test:coverage  # v8 coverage → text + html + lcov',
+      'pnpm typecheck      # tsc --noEmit',
+      'pnpm lint           # ESLint (fail on warnings)   ·   pnpm format',
+      '```',
+      '',
+      '## Deploy',
+      '',
+      '```sh',
+      'jorvel build',
+      'jorvel deploy --target vercel   # vercel | cloudflare | node | docker | bun | deno | netlify | github-pages',
+      '```',
+      '',
+      'Full guide → https://jorveljs.vercel.app/docs',
       '',
     ].join('\n'),
     'utf8',
@@ -479,7 +533,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
-import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
 
 // Resolve relative to this config file so federation config is found regardless
 // of where the dev server was invoked from.
@@ -570,13 +624,13 @@ export default {
     chunkFilename: process.env.NODE_ENV === 'production' ? '[id].[contenthash:8].js' : '[id].js',
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.jsx', '.js'],
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.cjs'],
     extensionAlias: {
-      '.js': ['.tsx', '.ts', '.jsx', '.js'],
+      '.js': ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.cjs'],
     },
   },
   module: {
-    rules: [
+    rules: [${tailwind === 'on' ? "\n      { test: /\\.css$/, use: ['postcss-loader'], type: 'css/auto' }," : ''}
       {
         test: /\\.(ts|tsx)$/,
         exclude: /node_modules/,
@@ -584,7 +638,7 @@ export default {
         options: {
           jsc: {
             parser: { syntax: 'typescript', tsx: true },
-            transform: { react: { runtime: 'automatic', refresh: process.env.NODE_ENV !== 'production' } }
+            transform: { react: { runtime: 'automatic', development: process.env.NODE_ENV !== 'production', refresh: process.env.NODE_ENV !== 'production' } }
           }
         }
       },
@@ -595,7 +649,7 @@ export default {
         options: {
           jsc: {
             parser: { syntax: 'ecmascript', jsx: true },
-            transform: { react: { runtime: 'automatic', refresh: process.env.NODE_ENV !== 'production' } }
+            transform: { react: { runtime: 'automatic', development: process.env.NODE_ENV !== 'production', refresh: process.env.NODE_ENV !== 'production' } }
           }
         }
       }
@@ -612,7 +666,7 @@ export default {
       'import.meta.env.JORVEL_ON_DEMAND_STARTER_URL': JSON.stringify(process.env.JORVEL_ON_DEMAND_STARTER_URL || ''),
     }),
     new rspack.HtmlRspackPlugin({ template: './index.html', scriptLoading: 'module' }),
-    ...(process.env.NODE_ENV !== 'production' ? [new ReactRefreshWebpackPlugin({ overlay: false })] : []),
+    ...(process.env.NODE_ENV !== 'production' ? [new ReactRefreshPlugin()] : []),
     ...(federation
       ? [
           new rspack.container.ModuleFederationPlugin({
@@ -636,36 +690,17 @@ export default {
   );
 
   if (tailwind === 'on') {
+    // Tailwind CSS v4 — CSS-first. `@import "tailwindcss"` + the @tailwindcss/postcss
+    // plugin; content is auto-detected (no tailwind.config needed).
     await fs.outputFile(
       path.join(appDir, 'src/styles.css'),
-      ['@tailwind base;', '@tailwind components;', '@tailwind utilities;', ''].join('\n'),
-      'utf8',
-    );
-
-    await fs.outputFile(
-      path.join(appDir, 'tailwind.config.cjs'),
-      [
-        'module.exports = {',
-        "  content: ['./index.html', './src/**/*.{ts,tsx,js,jsx}'],",
-        '  theme: { extend: {} },',
-        '  plugins: [],',
-        '};',
-        '',
-      ].join('\n'),
+      '@import "tailwindcss";\n',
       'utf8',
     );
 
     await fs.outputFile(
       path.join(appDir, 'postcss.config.cjs'),
-      [
-        'module.exports = {',
-        '  plugins: {',
-        '    tailwindcss: {},',
-        '    autoprefixer: {},',
-        '  },',
-        '};',
-        '',
-      ].join('\n'),
+      ['module.exports = {', '  plugins: {', "    '@tailwindcss/postcss': {},", '  },', '};', ''].join('\n'),
       'utf8',
     );
   }
@@ -698,7 +733,48 @@ async function addRemoteEntrypoint(appDir: string, name: string, lang: AppLang =
 
   await fs.outputFile(
     path.join(appDir, `src/pages/index.${exts.component}`),
-    `import React from 'react';\n\nexport default function HomePage() {\n  return (\n    <div style={{ padding: 12 }}>\n      <h3 style={{ marginTop: 0 }}>Home</h3>\n      <p style={{ color: '#666' }}>This is a file-based route: <code>/</code></p>\n    </div>\n  );\n}\n`,
+    `import React from 'react';
+
+const wrap: React.CSSProperties = { maxWidth: 760, margin: '0 auto', padding: '2.5rem 1.25rem', fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' };
+const badge: React.CSSProperties = { display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: '#6366f1', background: 'rgba(99,102,241,0.12)', padding: '4px 11px', borderRadius: 999 };
+const card: React.CSSProperties = { border: '1px solid #e2e8f0', borderRadius: 12, padding: '14px 16px', background: '#fff' };
+const btn: React.CSSProperties = { cursor: 'pointer', border: 'none', borderRadius: 10, padding: '10px 16px', fontWeight: 600, color: '#fff', background: 'linear-gradient(135deg,#6366f1,#22d3ee)', fontSize: 15 };
+
+const FEATURES: Array<[string, string]> = [
+  ['File-based routing', 'Drop a file in src/pages/ — it becomes a route.'],
+  ['Federated at runtime', 'The host loads this remote over Module Federation.'],
+  ['Crash-isolated', 'A render error shows a boundary, never white-screens the app.'],
+];
+
+/** ${name} — home route ("/"). Edit this file; it hot-reloads. */
+export default function HomePage() {
+  const [count, setCount] = React.useState(0);
+  return (
+    <div style={wrap}>
+      <span style={badge}>${name} · remote</span>
+      <h1 style={{ fontSize: '2.1rem', lineHeight: 1.15, margin: '16px 0 8px' }}>It works! 🎉</h1>
+      <p style={{ color: '#475569', fontSize: '1.06rem', margin: 0 }}>
+        This page is served by the <strong>${name}</strong> remote and mounted into the host via
+        Module Federation. Edit <code>src/pages/index.${exts.component}</code> and save — it hot-reloads.
+      </p>
+
+      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', margin: '28px 0' }}>
+        {FEATURES.map(([title, desc]) => (
+          <div key={title} style={card}>
+            <div style={{ fontWeight: 600 }}>{title}</div>
+            <div style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>{desc}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <button style={btn} onClick={() => setCount((c) => c + 1)}>Clicked {count} time{count === 1 ? '' : 's'}</button>
+        <span style={{ color: '#94a3b8', fontSize: 14 }}>← live React state, proving it&apos;s a real running app</span>
+      </div>
+    </div>
+  );
+}
+`,
     'utf8',
   );
 
@@ -1278,15 +1354,120 @@ function parseLang(raw: string | undefined): AppLang {
   });
 }
 
+/**
+ * Resolve the remote framework. Hosts are always React. For remotes: honor an
+ * explicit `--framework`, else prompt in an interactive terminal, else default
+ * to React (non-interactive).
+ */
+async function resolveFramework(
+  raw: string | undefined,
+  kind: 'host' | 'remote',
+): Promise<FrameworkId> {
+  if (kind === 'host') return 'react';
+  if (raw !== undefined) {
+    const v = raw.toLowerCase();
+    if (!isFrameworkId(v)) {
+      throw new JorvelCliError(`Invalid --framework: "${raw}".`, {
+        code: 'GEN-006',
+        hint: 'Use one of: react, vue, solid, svelte, angular.',
+      });
+    }
+    return v;
+  }
+  if (process.stdout.isTTY && process.stdin.isTTY) {
+    return (await select({
+      message: 'Which framework for this remote?',
+      choices: FRAMEWORK_CHOICES,
+      default: 'react',
+    })) as FrameworkId;
+  }
+  return 'react';
+}
+
+/**
+ * Resolve Tailwind: honor an explicit `--tailwind` / `--no-tailwind`, else
+ * prompt in an interactive terminal, else default off (non-interactive).
+ * Commander sets `tailwind` to `true`/`false` when a flag is passed, `undefined` otherwise.
+ */
+/**
+ * Auto-configure a freshly-generated remote into the workspace's host:
+ *   1. inject `'<name>': () => import('<name>/App')` into the host's REMOTES map
+ *   2. regenerate `jorvel.federation.json` (host gets the remote) via `jorvel federation`
+ *   3. regenerate the host route table (`/<name>/*` mount) via `jorvel routes`
+ * No-op (returns false) when there is no host yet. Idempotent.
+ */
+async function wireRemoteIntoHost(workspaceDir: string, remoteName: string): Promise<boolean> {
+  const host = await findHostApp(workspaceDir);
+  if (!host) return false;
+
+  // 1. Inject the static federated import into the host bootstrap's REMOTES map.
+  for (const ext of ['tsx', 'jsx'] as const) {
+    const bootstrap = path.join(host.dir, 'src', `bootstrap.${ext}`);
+    if (!(await fs.pathExists(bootstrap))) continue;
+    let src = await fs.readFile(bootstrap, 'utf8');
+    // Already wired? (match the raw name inside an import specifier)
+    if (!new RegExp(`import\\(['\\"]${remoteName}/`).test(src)) {
+      const entry = `  ${JSON.stringify(remoteName)}: () => import(${JSON.stringify(`${remoteName}/App`)}),`;
+      src = src.replace(/const REMOTES = \{/, `const REMOTES = {\n${entry}`);
+      await fs.writeFile(bootstrap, src, 'utf8');
+    }
+    break;
+  }
+
+  // 2 + 3. Regenerate federation + host route table so the remote is mounted.
+  const { federationCommand } = await import('./federation.js');
+  const { routesCommand } = await import('./routes.js');
+  federationCommand.exitOverride();
+  await federationCommand.parseAsync(['federation', '--dir', workspaceDir], { from: 'user' });
+  routesCommand.exitOverride();
+  await routesCommand.parseAsync(['routes', '--dir', workspaceDir], { from: 'user' });
+  return true;
+}
+
+/**
+ * Resolve the source language. Angular (and any tsOnly framework) is always TS.
+ * Otherwise: honor `--lang`, else prompt in a TTY, else default TS.
+ */
+async function resolveLang(raw: string | undefined, framework: FrameworkId): Promise<AppLang> {
+  const spec = getFrameworkSpec(framework);
+  if (spec?.tsOnly) return 'ts';
+  if (raw !== undefined) return parseLang(raw);
+  if (process.stdout.isTTY && process.stdin.isTTY) {
+    return (await select({
+      message: 'Source language?',
+      choices: [
+        { name: 'TypeScript (recommended)', value: 'ts' },
+        { name: 'JavaScript', value: 'js' },
+      ],
+      default: 'ts',
+    })) as AppLang;
+  }
+  return 'ts';
+}
+
+async function resolveTailwind(flag: boolean | undefined): Promise<boolean> {
+  if (typeof flag === 'boolean') return flag;
+  if (process.stdout.isTTY && process.stdin.isTTY) {
+    return confirm({ message: 'Add Tailwind CSS?', default: false });
+  }
+  return false;
+}
+
 function createAppCommand(name: string, opts: CreateAppOptions): Command {
   return new Command(name)
     .description(`Generate a ${opts.kind} app`)
     .argument('<name>', `${opts.kind} app name (folder name under apps/)`)
     .option('-d, --dir <path>', 'Workspace root directory', process.cwd())
     .option('--port <port>', 'Dev server port', String(opts.defaultPort))
-    .option('--tailwind', 'Enable Tailwind CSS (PostCSS + tailwind.config)', false)
+    .option('--tailwind', 'Enable Tailwind CSS (PostCSS + tailwind.config)')
+    .option('--no-tailwind', 'Skip Tailwind CSS (skip the prompt)')
+    .option('--no-wire', 'For remote: do NOT auto-wire the new remote into the host')
     .option('--remote <name>', 'For host: which demo remote to wire up', 'dashboard')
-    .option('--lang <ts|js>', 'Source language for the scaffolded app', 'ts')
+    .option('--lang <ts|js>', 'Source language for the scaffolded app (prompted if omitted)')
+    .option(
+      '--framework <fw>',
+      'Remote framework: react | vue | solid | svelte | angular (host is always react)',
+    )
     .action(
       async (
         rawName: string,
@@ -1294,8 +1475,10 @@ function createAppCommand(name: string, opts: CreateAppOptions): Command {
           dir: string;
           port: string;
           tailwind?: boolean;
+          wire?: boolean;
           remote?: string;
           lang?: string;
+          framework?: string;
         },
       ) => {
         const workspaceDir = path.resolve(cmdOpts.dir);
@@ -1303,7 +1486,40 @@ function createAppCommand(name: string, opts: CreateAppOptions): Command {
         validateAppName(appName);
         const appDir = path.join(workspaceDir, 'apps', appName);
         const port = parsePort(cmdOpts.port, opts.defaultPort);
-        const lang = parseLang(cmdOpts.lang);
+
+        // ── Framework selection (remotes only; host is always React) ─────────
+        const framework = await resolveFramework(cmdOpts.framework, opts.kind);
+        // ── Language: explicit flag, else prompt in a TTY, else ts ───────────
+        const lang = await resolveLang(cmdOpts.lang, framework);
+        // ── Tailwind: explicit flag, else prompt in a TTY, else off ──────────
+        const tailwind: TailwindMode = (await resolveTailwind(cmdOpts.tailwind)) ? 'on' : 'off';
+
+        if (opts.kind === 'remote' && framework !== 'react') {
+          const spec = getFrameworkSpec(framework);
+          if (!spec) throw new JorvelCliError(`Unknown framework "${framework}".`, { code: 'GEN-006' });
+          // eslint-disable-next-line no-console
+          console.log(kleur.cyan(`Generating ${spec.label} remote ${appName} (${lang}) in ${appDir}${tailwind === 'on' ? ' + Tailwind' : ''}`));
+          await ensureDirIsCreatable(appDir);
+          await scaffoldFrameworkRemote(appDir, appName, port, spec, tailwind, lang);
+          await writeJson(path.join(appDir, 'jorvel.app.json'), {
+            $schema: '../../node_modules/@jorvel/types/schemas/jorvel.app.json',
+            name: appName,
+            type: 'remote',
+            port,
+            framework: spec.id,
+            exposes: { './App': `./src/remote.${lang}` },
+          });
+          const wiredFw = cmdOpts.wire !== false ? await wireRemoteIntoHost(workspaceDir, appName) : false;
+          // eslint-disable-next-line no-console
+          console.log(
+            kleur.green(
+              wiredFw
+                ? `Done — ${spec.label} remote, auto-wired into the host (federation + routes + REMOTES).`
+                : `Done — ${spec.label} remote. Run \`jorvel federation\` to wire it into a host.`,
+            ),
+          );
+          return;
+        }
 
         // eslint-disable-next-line no-console
         console.log(
@@ -1311,13 +1527,7 @@ function createAppCommand(name: string, opts: CreateAppOptions): Command {
         );
 
         await ensureDirIsCreatable(appDir);
-        await scaffoldReactRspackApp(
-          appDir,
-          appName,
-          port,
-          cmdOpts.tailwind ? 'on' : 'off',
-          lang,
-        );
+        await scaffoldReactRspackApp(appDir, appName, port, tailwind, lang);
 
         const postOpts: { remoteName?: string; lang: AppLang } = { lang };
         if (cmdOpts.remote) {
@@ -1329,8 +1539,14 @@ function createAppCommand(name: string, opts: CreateAppOptions): Command {
 
         if (opts.alsoWrite) await opts.alsoWrite(appDir, appName, port);
 
+        // Auto-wire a React remote into the host (federation + routes + REMOTES map).
+        let wired = false;
+        if (opts.kind === 'remote' && cmdOpts.wire !== false) {
+          wired = await wireRemoteIntoHost(workspaceDir, appName);
+        }
+
         // eslint-disable-next-line no-console
-        console.log(kleur.green('Done.'));
+        console.log(kleur.green(wired ? 'Done — remote auto-wired into the host.' : 'Done.'));
       },
     );
 }
@@ -1473,14 +1689,20 @@ function createGenerateCommand() {
           ? 1
           : ((await number({ message: 'How many remotes?', default: 1, min: 1, max: 8 })) ?? 1)) as number;
 
-      const remoteNames: string[] = [];
+      const remoteSpecs: { name: string; framework: FrameworkId }[] = [];
       for (let i = 0; i < remoteCount; i++) {
         const r = await input({
           message: `Remote #${i + 1} name`,
           default: i === 0 ? 'dashboard' : `remote-${i + 1}`,
         });
-        remoteNames.push(r);
+        const framework = (await select({
+          message: `Remote #${i + 1} (${r}) framework`,
+          choices: FRAMEWORK_CHOICES,
+          default: 'react',
+        })) as FrameworkId;
+        remoteSpecs.push({ name: r, framework });
       }
+      const remoteNames = remoteSpecs.map((s) => s.name);
 
       // No process.chdir — we pass --dir to subcommands explicitly so the wizard
       // can be safely interleaved with other concurrent CLI work.
@@ -1489,19 +1711,21 @@ function createGenerateCommand() {
         await cmd.parseAsync(args, { from: 'user' });
       };
 
+      // Pass the tailwind decision explicitly so the subcommand doesn't re-prompt.
+      const twFlag = tailwind ? '--tailwind' : '--no-tailwind';
+
       if (mode !== 'remote') {
-        const args = [hostName, '--dir', workspaceDir, '--port', String(hostPort), '--lang', lang];
-        if (tailwind) args.push('--tailwind');
+        const args = [hostName, '--dir', workspaceDir, '--port', String(hostPort), '--lang', lang, twFlag];
         if (remoteNames[0]) args.push('--remote', remoteNames[0]);
         await runSub(hostCommand, args);
       }
 
       const baseRemotePort = (hostPort ?? 3000) + 1;
-      for (let i = 0; i < remoteNames.length; i++) {
-        const remoteName = remoteNames[i] ?? `remote-${i + 1}`;
+      for (let i = 0; i < remoteSpecs.length; i++) {
+        const rspec = remoteSpecs[i] ?? { name: `remote-${i + 1}`, framework: 'react' as FrameworkId };
         const p = baseRemotePort + i;
-        const args = [remoteName, '--dir', workspaceDir, '--port', String(p), '--lang', lang];
-        if (tailwind) args.push('--tailwind');
+        // Tailwind now works for every framework (PostCSS via rspack).
+        const args = [rspec.name, '--dir', workspaceDir, '--port', String(p), '--lang', lang, '--framework', rspec.framework, twFlag];
         await runSub(remoteCommand, args);
       }
 

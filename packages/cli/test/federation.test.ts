@@ -127,6 +127,36 @@ describe('jorvel federation', () => {
     expect(remoteCfg.shared?.['@jorvel/runtime']?.eager).toBe(false);
   });
 
+  it('a non-react remote shares its OWN framework runtime, not react', async () => {
+    const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-fed-'))) as string;
+    const appsDir = path.join(tmp, 'apps');
+    await fs.ensureDir(path.join(appsDir, 'shell'));
+    await fs.writeJson(path.join(appsDir, 'shell', 'jorvel.app.json'), { name: 'shell', type: 'host', port: 3000 });
+    // A Vue remote with an explicit exposed entry.
+    await fs.ensureDir(path.join(appsDir, 'pricing', 'src'));
+    await fs.writeJson(path.join(appsDir, 'pricing', 'jorvel.app.json'), {
+      name: 'pricing',
+      type: 'remote',
+      port: 3002,
+      framework: 'vue',
+      exposes: { './App': './src/remote.ts' },
+    });
+
+    await runCommand(['--dir', tmp], tmp);
+
+    const cfg = await fs.readJson(path.join(appsDir, 'pricing', 'jorvel.federation.json'));
+    const shared = cfg.shared as Record<string, { singleton: boolean }>;
+    expect(shared['vue']?.singleton).toBe(true);
+    expect(shared['@jorvel/event-bus']?.singleton).toBe(true);
+    // A Vue remote must NOT force react / the React runtime into its scope.
+    expect(shared['react']).toBeUndefined();
+    expect(shared['react-dom']).toBeUndefined();
+    expect(shared['@jorvel/runtime']).toBeUndefined();
+    // Host still wires the vue remote.
+    const hostCfg = await fs.readJson(path.join(appsDir, 'shell', 'jorvel.federation.json'));
+    expect(hostCfg.remotes?.['pricing']).toContain('remoteEntry.js');
+  });
+
   it('@jorvel/event-bus is a singleton on both sides; eager on host, lazy on remote', async () => {
     const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-fed-'))) as string;
     const appsDir = await scaffold(tmp);

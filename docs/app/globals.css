@@ -210,7 +210,9 @@ body {
   border: 1px solid hsl(var(--border));
 }
 
-.prose-jorvel pre {
+/* Raw <pre> (rare — most code uses the CodeBlock component). Exclude
+   `.code-pre` so the CodeBlock's own container isn't double-carded. */
+.prose-jorvel pre:not(.code-pre) {
   background: hsl(240 10% 5%);
   color: hsl(0 0% 90%);
   padding: 1rem 1.25rem;
@@ -241,6 +243,13 @@ body {
 }
 .prose-jorvel a:hover {
   text-decoration-color: hsl(var(--accent));
+}
+
+/* Interactive card/button links (showcase, etc.) opt out of prose link styling
+   — no underline, no forced accent color. Higher specificity than `.prose-jorvel a`. */
+.prose-jorvel .jorvel-showcase a,
+.prose-jorvel .jorvel-showcase a:hover {
+  text-decoration: none;
 }
 
 .prose-jorvel table {

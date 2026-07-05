@@ -1,0 +1,18 @@
+{
+  "app": "shell",
+  "basePath": "/",
+  "routes": [
+    {
+      "path": "/_404",
+      "file": "src/pages/_404.jsx"
+    },
+    {
+      "path": "/_error",
+      "file": "src/pages/_error.jsx"
+    },
+    {
+      "path": "/index.test",
+      "file": "src/pages/index.test.jsx"
+    }
+  ]
+}

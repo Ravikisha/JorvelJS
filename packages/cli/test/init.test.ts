@@ -12,12 +12,22 @@ async function run(name: string, dir: string, extra: string[] = []) {
   // prior test's `--pm`/`--template` can't leak into this one.
   if (!extra.includes('--pm')) initCommand.setOptionValue('pm', 'pnpm');
   if (!extra.includes('--template')) initCommand.setOptionValue('template', 'host-remote');
+  // `ai` is a boolean|string; reset to the default (true = all tools) unless
+  // the test drives it, so a prior `--no-ai`/`--ai` can't leak.
+  if (!extra.includes('--no-ai') && !extra.includes('--ai')) initCommand.setOptionValue('ai', true);
+  // By default these tests exercise the WORKSPACE scaffold only. Skip generating
+  // the starter host+remote (fast + keeps assertions focused) unless a test opts
+  // in by passing `--app`-ish intent. A dedicated block below covers scaffolding.
+  const wantsApp = extra.includes('--scaffold-app');
+  const cleanExtra = extra.filter((e) => e !== '--scaffold-app');
+  initCommand.setOptionValue('app', wantsApp ? true : false);
   const prev = process.cwd();
   process.chdir(dir);
   try {
     // Commander parses: [command-name, arg, ...options]
     // When using `from: 'user'`, the first token is treated as the command name.
-    await initCommand.parseAsync([name, '--dir', dir, ...extra], { from: 'user' });
+    const appFlag = wantsApp ? [] : ['--no-app'];
+    await initCommand.parseAsync([name, '--dir', dir, ...appFlag, ...cleanExtra], { from: 'user' });
   } finally {
     process.chdir(prev);
   }
@@ -317,12 +327,11 @@ describe('jorvel init', () => {
   });
 
   describe('assets + README + git init', () => {
-    it('copies logo.svg + logo-light.svg + favicon.ico to assets/', async () => {
+    it('copies logojorvel.png + favicon.ico to assets/', async () => {
       const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-'))) as string;
       await run('my-app', tmp);
       const assets = path.join(tmp, 'my-app', 'assets');
-      expect(await fs.pathExists(path.join(assets, 'logo.svg'))).toBe(true);
-      expect(await fs.pathExists(path.join(assets, 'logo-light.svg'))).toBe(true);
+      expect(await fs.pathExists(path.join(assets, 'logojorvel.png'))).toBe(true);
       expect(await fs.pathExists(path.join(assets, 'favicon.ico'))).toBe(true);
     });
 
@@ -338,12 +347,14 @@ describe('jorvel init', () => {
       expect(ico[3]).toBe(0x00);
     });
 
-    it('logo.svg is a valid SVG document', async () => {
+    it('logojorvel.png is a non-empty binary logo', async () => {
       const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-'))) as string;
       await run('my-app', tmp);
-      const svg = await fs.readFile(path.join(tmp, 'my-app', 'assets', 'logo.svg'), 'utf8');
-      expect(svg).toContain('<svg');
-      expect(svg).toContain('</svg>');
+      const buf = await fs.readFile(path.join(tmp, 'my-app', 'assets', 'logojorvel.png'));
+      expect(buf.length).toBeGreaterThan(1000);
+      // PNG magic bytes.
+      expect(buf[0]).toBe(0x89);
+      expect(buf.subarray(1, 4).toString('ascii')).toBe('PNG');
     });
 
     it('README.md embeds the workspace logo', async () => {
@@ -502,6 +513,45 @@ describe('jorvel init', () => {
       expect(readme).toContain('settings.json');
     });
 
+    it('writes .windsurfrules (references AGENTS.md)', async () => {
+      const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-'))) as string;
+      await run('my-app', tmp);
+      const rules = await fs.readFile(path.join(tmp, 'my-app', '.windsurfrules'), 'utf8');
+      expect(rules).toContain('JORVEL');
+      expect(rules).toContain('AGENTS.md');
+    });
+
+    it('writes GEMINI.md (references AGENTS.md)', async () => {
+      const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-'))) as string;
+      await run('my-app', tmp);
+      const md = await fs.readFile(path.join(tmp, 'my-app', 'GEMINI.md'), 'utf8');
+      expect(md).toContain('JORVEL');
+      expect(md).toContain('AGENTS.md');
+    });
+
+    it('writes .mcp.json wiring the jorvel-docs MCP server', async () => {
+      const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-'))) as string;
+      await run('my-app', tmp);
+      const mcp = await fs.readJson(path.join(tmp, 'my-app', '.mcp.json'));
+      expect(mcp.mcpServers['jorvel-docs'].command).toBe('npx');
+      expect(mcp.mcpServers['jorvel-docs'].args).toContain('@jorvel/mcp-docs');
+    });
+
+    it('--ai <tools> scaffolds only the selected tools', async () => {
+      const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-'))) as string;
+      await run('my-app', tmp, ['--ai', 'claude,mcp']);
+      const app = path.join(tmp, 'my-app');
+      // selected
+      expect(await fs.pathExists(path.join(app, 'CLAUDE.md'))).toBe(true);
+      expect(await fs.pathExists(path.join(app, '.claude'))).toBe(true);
+      expect(await fs.pathExists(path.join(app, '.mcp.json'))).toBe(true);
+      // not selected
+      expect(await fs.pathExists(path.join(app, '.cursorrules'))).toBe(false);
+      expect(await fs.pathExists(path.join(app, '.windsurfrules'))).toBe(false);
+      expect(await fs.pathExists(path.join(app, 'GEMINI.md'))).toBe(false);
+      expect(await fs.pathExists(path.join(app, 'AGENTS.md'))).toBe(false);
+    });
+
     it('--no-ai skips all AI scaffold files', async () => {
       const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-'))) as string;
       initCommand.exitOverride();
@@ -554,6 +604,33 @@ describe('jorvel init', () => {
       const gi = await fs.readFile(path.join(tmp, 'my-app', '.gitignore'), 'utf8');
       expect(gi).toContain('playwright-report');
       expect(gi).toContain('.turbo');
+    });
+  });
+
+  describe('starter app scaffold (default)', () => {
+    it('generates a runnable host + remote, auto-wired', async () => {
+      const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-app-'))) as string;
+      await run('my-app', tmp, ['--no-ai', '--no-git', '--scaffold-app']);
+      const root = path.join(tmp, 'my-app');
+
+      // Host + first remote exist as real React apps.
+      expect(await fs.pathExists(path.join(root, 'apps', 'shell', 'src', 'bootstrap.tsx'))).toBe(true);
+      expect(await fs.pathExists(path.join(root, 'apps', 'dashboard', 'src', 'pages', 'index.tsx'))).toBe(true);
+
+      // The remote is auto-wired into the host: federation + host routes + REMOTES map.
+      const fed = await fs.readJson(path.join(root, 'apps', 'shell', 'jorvel.federation.json'));
+      expect(Object.keys(fed.remotes ?? {})).toContain('dashboard');
+      const hostRoutes = await fs.readJson(path.join(root, 'apps', 'shell', 'jorvel.routes.host.json'));
+      expect(hostRoutes.routes.some((r: { remote: string }) => r.remote === 'dashboard')).toBe(true);
+      const bootstrap = await fs.readFile(path.join(root, 'apps', 'shell', 'src', 'bootstrap.tsx'), 'utf8');
+      expect(bootstrap).toContain("import('dashboard/App')");
+    }, 60_000);
+
+    it('--no-app leaves a bare workspace (no apps/)', async () => {
+      const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-init-noapp-'))) as string;
+      await run('my-app', tmp, ['--no-ai', '--no-git']); // run() defaults to --no-app
+      expect(await fs.pathExists(path.join(tmp, 'my-app', 'package.json'))).toBe(true);
+      expect(await fs.pathExists(path.join(tmp, 'my-app', 'apps', 'shell'))).toBe(false);
     });
   });
 });

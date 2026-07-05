@@ -49,7 +49,7 @@ export type {
 export type { JorvelPlugin, JorvelDevPlan, JorvelAppMeta } from './plugins.js';
 
 export type { JorvelPageRoute, JorvelRoutesManifest, JorvelHostRoutesManifest, JorvelRoutingCompiler } from './routing-compiler.js';
-export { defaultRoutingCompiler } from './routing-compiler.js';
+export { defaultRoutingCompiler, PAGE_EXTENSIONS, PAGE_EXT_RE } from './routing-compiler.js';
 
 export {
   contractChecks,

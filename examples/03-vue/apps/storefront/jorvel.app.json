@@ -1,0 +1,10 @@
+{
+  "$schema": "../../node_modules/@jorvel/types/schemas/jorvel.app.json",
+  "name": "storefront",
+  "type": "remote",
+  "port": 3001,
+  "framework": "vue",
+  "exposes": {
+    "./App": "./src/remote.ts"
+  }
+}

@@ -1,44 +1,50 @@
 import { Callout } from '@/components/docs/callout';
+import { ShowcaseGrid } from '@/components/docs/showcase-grid';
 
 export const metadata = {
   title: 'Showcase',
-  description: 'Apps and starters built with JORVEL. Submit yours.',
+  description: 'Runnable JORVEL starters — open each in StackBlitz, CodeSandbox, GitHub Codespaces, or clone & run locally.',
 };
-
-const EXAMPLES = [
-  { name: 'basic', desc: 'Host + dashboard remote — the canonical two-tier setup.', path: 'examples/basic' },
-  { name: 'ecommerce', desc: 'Storefront + cart + checkout as independent remotes.', path: 'examples/ecommerce' },
-  { name: 'saas', desc: 'Marketing site + authed dashboard, split by team.', path: 'examples/saas' },
-];
 
 export default function Showcase() {
   return (
     <>
       <h1>Showcase</h1>
-      <p>Real JORVEL apps and the starters that ship in the repo.</p>
+      <p>
+        Runnable starters that ship in the repo. Open any of them in a browser sandbox — StackBlitz,
+        CodeSandbox, or GitHub Codespaces — or grab the one-line clone-&amp;-run command.
+      </p>
 
-      <h2 id="starters">In-repo starters</h2>
-      <ul>
-        {EXAMPLES.map((e) => (
-          <li key={e.name}>
-            <a href={`https://github.com/Ravikisha/JorvelJS/tree/main/${e.path}`}>
-              <strong>{e.name}</strong>
-            </a>{' '}
-            — {e.desc}
-          </li>
-        ))}
-      </ul>
+      <ShowcaseGrid />
+
+      <h2 id="run">Running locally</h2>
+      <p>
+        Each card&apos;s <strong>Clone &amp; run</strong> copies a one-liner. The gist for the
+        SSG/SSR examples:
+      </p>
+      <pre className="code-pre" style={{ background: 'hsl(240 10% 5%)', color: 'hsl(0 0% 90%)', padding: '1rem 1.25rem', borderRadius: '0.625rem', overflowX: 'auto' }}>
+{`git clone https://github.com/Ravikisha/JorvelJS
+cd JorvelJS && pnpm install
+cd examples/02-react
+pnpm build             # renders dist-ssg/
+pnpm start             # serve the static output`}
+      </pre>
+      <p>
+        The <code>03-polyglot</code> example runs live cross-framework federation instead:{' '}
+        <code>cd examples/03-polyglot &amp;&amp; pnpm scaffold &amp;&amp; jorvel dev</code> (React host
+        on :3000 mounts React, Vue &amp; Angular remotes).
+      </p>
 
       <h2 id="submit">Submit your app</h2>
       <p>
         Shipping something on JORVEL? Open a{' '}
         <a href="https://github.com/Ravikisha/JorvelJS/discussions">Discussion</a> with a screenshot
-        + link and we&apos;ll add it here.
+        + link and we&apos;ll feature it here.
       </p>
 
-      <Callout variant="info" title="Try it live">
-        Every starter opens in a browser sandbox — see the{' '}
-        <a href="/docs/getting-started#sandbox">StackBlitz links</a> on Getting started.
+      <Callout variant="info" title="Browser sandboxes">
+        StackBlitz &amp; CodeSandbox boot the repo in-browser (no install). Codespaces spins up a
+        full cloud dev container. All three open the exact <code>examples/&lt;name&gt;</code> folder.
       </Callout>
     </>
   );

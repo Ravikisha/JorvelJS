@@ -116,9 +116,9 @@ describe('jorvel generate', () => {
     expect(rspackConfig).toContain('hot: true');
     expect(rspackConfig).toContain('liveReload: false');
 
-    // React refresh plugin + SWC refresh transform
-    expect(rspackConfig).toContain("import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin'");
-    expect(rspackConfig).toContain('new ReactRefreshWebpackPlugin');
+    // rspack's own React Refresh plugin (the webpack @pmmmwh plugin is incompatible) + SWC refresh transform
+    expect(rspackConfig).toContain("import ReactRefreshPlugin from '@rspack/plugin-react-refresh'");
+    expect(rspackConfig).toContain('new ReactRefreshPlugin');
     expect(rspackConfig).toContain('refresh: process.env.NODE_ENV !== \'production\'');
   });
 
@@ -234,7 +234,7 @@ describe('jorvel generate', () => {
 
     it('test scripts run vitest', async () => {
       const { pkg } = await generateHost();
-      expect(pkg.scripts.test).toBe('vitest run');
+      expect(pkg.scripts.test).toBe('vitest run --passWithNoTests');
       expect(pkg.scripts['test:watch']).toBe('vitest');
       expect(pkg.scripts['test:coverage']).toContain('--coverage');
     });
@@ -451,31 +451,28 @@ describe('jorvel generate', () => {
   // ── Tailwind option ─────────────────────────────────────────────────────────
 
   describe('--tailwind flag', () => {
-    it('adds tailwindcss + postcss + autoprefixer devDeps', async () => {
+    it('adds Tailwind v4 devDeps (tailwindcss + @tailwindcss/postcss + postcss-loader)', async () => {
       const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-cli-'))) as string;
       await run(['host', 'shell', '--dir', tmp, '--port', '3000', '--tailwind'], tmp);
       const pkg = await fs.readJson(path.join(tmp, 'apps', 'shell', 'package.json'));
       expect(pkg.devDependencies.tailwindcss).toBeDefined();
-      expect(pkg.devDependencies.postcss).toBeDefined();
-      expect(pkg.devDependencies.autoprefixer).toBeDefined();
+      expect(pkg.devDependencies['@tailwindcss/postcss']).toBeDefined();
+      expect(pkg.devDependencies['postcss-loader']).toBeDefined();
     });
 
-    it('writes tailwind.config.cjs + postcss.config.cjs + styles.css', async () => {
+    it('writes postcss.config.cjs + CSS-first styles.css (Tailwind v4)', async () => {
       const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-cli-'))) as string;
       await run(['host', 'shell', '--dir', tmp, '--port', '3000', '--tailwind'], tmp);
       expect(
-        await fs.pathExists(path.join(tmp, 'apps', 'shell', 'tailwind.config.cjs')),
-      ).toBe(true);
-      expect(
         await fs.pathExists(path.join(tmp, 'apps', 'shell', 'postcss.config.cjs')),
       ).toBe(true);
+      const postcss = await fs.readFile(path.join(tmp, 'apps', 'shell', 'postcss.config.cjs'), 'utf8');
+      expect(postcss).toContain('@tailwindcss/postcss');
       const css = await fs.readFile(
         path.join(tmp, 'apps', 'shell', 'src', 'styles.css'),
         'utf8',
       );
-      expect(css).toContain('@tailwind base');
-      expect(css).toContain('@tailwind components');
-      expect(css).toContain('@tailwind utilities');
+      expect(css).toContain('@import "tailwindcss"');
     });
 
     it('main.tsx imports styles.css when tailwind enabled', async () => {
@@ -958,14 +955,13 @@ describe('jorvel generate', () => {
       expect(bytes[3]).toBe(0x00);
     });
 
-    it('writes public/logo.svg + logo-light.svg', async () => {
+    it('writes public/logojorvel.png (the brand logo)', async () => {
       const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-cli-'))) as string;
       await run(['host', 'shell', '--dir', tmp, '--port', '3000'], tmp);
       const pub = path.join(tmp, 'apps', 'shell', 'public');
-      const dark = await fs.readFile(path.join(pub, 'logo.svg'), 'utf8');
-      const light = await fs.readFile(path.join(pub, 'logo-light.svg'), 'utf8');
-      expect(dark).toContain('<svg');
-      expect(light).toContain('<svg');
+      expect(await fs.pathExists(path.join(pub, 'logojorvel.png'))).toBe(true);
+      // The stale old-logo SVGs are no longer shipped.
+      expect(await fs.pathExists(path.join(pub, 'logo.svg'))).toBe(false);
     });
 
     it('index.html links favicon.ico, logojorvel.png, and adds description meta', async () => {
@@ -989,7 +985,7 @@ describe('jorvel generate', () => {
         await fs.pathExists(path.join(tmp, 'apps', 'dashboard', 'public', 'favicon.ico')),
       ).toBe(true);
       expect(
-        await fs.pathExists(path.join(tmp, 'apps', 'dashboard', 'public', 'logo.svg')),
+        await fs.pathExists(path.join(tmp, 'apps', 'dashboard', 'public', 'logojorvel.png')),
       ).toBe(true);
     });
   });

@@ -1,0 +1,10 @@
+{
+  "host": "shell",
+  "routes": [
+    {
+      "path": "/dashboard/*",
+      "remote": "dashboard",
+      "module": "./App"
+    }
+  ]
+}

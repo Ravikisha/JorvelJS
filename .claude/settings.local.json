@@ -25,7 +25,10 @@
       "Bash(pnpm exec *)",
       "Bash(pnpm --filter jorvel test)",
       "Bash(pnpm --filter @jorvel/event-bus test)",
-      "Bash(pnpm --filter @jorvel/adapter-node build)"
+      "Bash(pnpm --filter @jorvel/adapter-node build)",
+      "Bash(node -e \"const p=require\\('./libs/runtime/package.json'\\); console.log\\(JSON.stringify\\({deps:p.dependencies,peer:p.peerDependencies,dev:p.devDependencies,scripts:p.scripts,exports:p.exports},null,1\\)\\)\")",
+      "Bash(cat libs/runtime/vitest.config.ts)",
+      "Bash(cat libs/runtime/vitest.config.*)"
     ]
   }
 }

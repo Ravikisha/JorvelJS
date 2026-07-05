@@ -1,0 +1,10 @@
+{
+  "host": "shell",
+  "routes": [
+    {
+      "path": "/marketing/*",
+      "remote": "marketing",
+      "module": "./App"
+    }
+  ]
+}

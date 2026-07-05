@@ -1,0 +1,6 @@
+{
+  "$schema": "../../node_modules/@jorvel/types/schemas/jorvel.app.json",
+  "name": "shell",
+  "type": "host",
+  "port": 3000
+}

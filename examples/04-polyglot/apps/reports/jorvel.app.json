@@ -1,0 +1,10 @@
+{
+  "$schema": "../../node_modules/@jorvel/types/schemas/jorvel.app.json",
+  "name": "reports",
+  "type": "remote",
+  "port": 3003,
+  "framework": "angular",
+  "exposes": {
+    "./App": "./src/remote.ts"
+  }
+}

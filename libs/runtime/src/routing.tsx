@@ -16,6 +16,17 @@ import { ErrorBoundary } from './error-boundary.js';
 import { prefetchRoute } from './prefetch.js';
 import { matchPath } from './route-matcher.js';
 import type { FederationRemote } from './remote-loader.js';
+import { asMountModule, isMountModule, type JorvelMountModule } from '@jorvel/mount';
+import { RemoteMountOutlet } from './remote-mount.js';
+
+/** What a remote's exposed entry may resolve to — a React component default (legacy) or a mount module. */
+export type RemoteImport =
+  | { default: React.ComponentType<{ subpath?: string }> }
+  | { default: JorvelMountModule }
+  | JorvelMountModule;
+
+/** A resolved, cacheable remote: either a React component or a framework-neutral mount module. */
+type RemoteMountable = React.ComponentType<{ subpath?: string }> | JorvelMountModule;
 
 // ── Singleton router (pinned to globalThis for MF-singleton survival) ──────
 
@@ -195,7 +206,7 @@ export function NavLink({
 
 export type RemoteOutletProps = {
   routes: RouteTarget[];
-  remotes: Record<string, () => Promise<{ default: React.ComponentType<{ subpath?: string }> }>>;
+  remotes: Record<string, () => Promise<RemoteImport>>;
   fallback?: React.ReactNode;
   noMatch?: React.ReactNode;
   /** LRU max size for the remote-component cache. Default 32. */
@@ -234,10 +245,10 @@ class LRU<K, V> {
 
 const REMOTE_CACHE_KEY = '__JORVEL_REMOTE_OUTLET_CACHE__';
 type GlobalWithRemoteCache = typeof globalThis & {
-  [REMOTE_CACHE_KEY]?: LRU<string, React.ComponentType<{ subpath?: string }>>;
+  [REMOTE_CACHE_KEY]?: LRU<string, RemoteMountable>;
 };
 
-function getRemoteCache(max: number): LRU<string, React.ComponentType<{ subpath?: string }>> {
+function getRemoteCache(max: number): LRU<string, RemoteMountable> {
   const g = globalThis as GlobalWithRemoteCache;
   if (!g[REMOTE_CACHE_KEY]) g[REMOTE_CACHE_KEY] = new LRU(max);
   return g[REMOTE_CACHE_KEY];
@@ -261,11 +272,18 @@ export function RemoteOutlet({
     ? `${resolved.target.remote}::${resolved.target.module ?? './App'}`
     : null;
 
-  const [Remote, setRemote] = React.useState<React.ComponentType<{ subpath?: string }> | null>(null);
+  const [Remote, setRemote] = React.useState<RemoteMountable | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   const subpath = resolved ? getSubpath(resolved.params) : '/';
+  // The prefix the remote is mounted under = the current pathname minus its subpath.
+  const basePath =
+    subpath === '/'
+      ? pathname || '/'
+      : pathname.endsWith(subpath)
+        ? pathname.slice(0, pathname.length - subpath.length) || '/'
+        : pathname || '/';
 
   // Stash the latest `remotes` map in a ref so the effect's deps stay narrow
   // (just remoteKey) — without this, every parent render that re-creates the
@@ -304,8 +322,12 @@ export function RemoteOutlet({
     importer()
       .then((m) => {
         if (signal.aborted) return;
-        cache.set(remoteKey, m.default);
-        setRemote(() => m.default);
+        // Neutral mount module (any framework) takes precedence; otherwise the
+        // legacy React-component default. Both are cached + rendered below.
+        const mountable: RemoteMountable =
+          asMountModule(m) ?? (m as { default: React.ComponentType<{ subpath?: string }> }).default;
+        cache.set(remoteKey, mountable);
+        setRemote(() => mountable);
         setLoading(false);
       })
       .catch((e: unknown) => {
@@ -334,7 +356,16 @@ export function RemoteOutlet({
         </pre>
       )}
     >
-      <Remote subpath={subpath} />
+      {isMountModule(Remote) ? (
+        <RemoteMountOutlet
+          module={Remote}
+          subpath={subpath}
+          basePath={basePath}
+          params={resolved?.params ?? {}}
+        />
+      ) : (
+        <Remote subpath={subpath} />
+      )}
     </ErrorBoundary>
   );
 }

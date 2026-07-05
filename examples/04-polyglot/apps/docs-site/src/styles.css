@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+.jorvel-remote { font-family: system-ui, sans-serif; padding: 1rem; }
+.jorvel-remote h1 { margin: 0 0 .5rem; }
+.jorvel-remote small { color: #888; font-weight: 400; }
+.jorvel-remote code { background: rgba(127,127,127,.15); padding: .1em .35em; border-radius: 4px; }

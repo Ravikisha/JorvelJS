@@ -5,6 +5,7 @@ export * from './route-matcher.js';
 export * from './routes.js';
 export * from './remote-pages.js';
 export * from './routing.js';
+export * from './remote-mount.js';
 export * from './federated-router.js';
 export * from './error-boundary.js';
 export * from './error-boundary-utils.js';

@@ -30,14 +30,17 @@ export default function CliReference() {
         </thead>
         <tbody>
           <tr><td><code>npm create jorvel@latest &lt;name&gt;</code></td><td>Shorthand for <code>jorvel init</code> via the <code>create-jorvel</code> package (works with pnpm/yarn/bun create too)</td></tr>
-          <tr><td><code>jorvel init &lt;name&gt;</code></td><td>Create a new workspace (TypeScript, CI templates, deploy workflow). Interactive: template + package-manager + Tailwind prompts</td></tr>
+          <tr><td><code>jorvel init &lt;name&gt;</code></td><td><strong>Scaffolds a runnable app</strong> — workspace + starter host + remote, auto-wired. <code>cd</code>, install, <code>jorvel dev</code> and it runs (create-next-app style)</td></tr>
+          <tr><td><code>jorvel init &lt;name&gt; --no-app</code></td><td>Bare workspace only — skip the starter host + remote</td></tr>
           <tr><td><code>jorvel init &lt;name&gt; --template &lt;t&gt;</code></td><td>Starter template: <code>host-remote</code> (default) · <code>saas</code> · <code>blank</code></td></tr>
-          <tr><td><code>jorvel init &lt;name&gt; --pm &lt;m&gt;</code></td><td>Package manager: <code>pnpm</code> (default) · <code>npm</code> · <code>yarn</code> · <code>bun</code> — sets <code>packageManager</code> + workspace layout</td></tr>
-          <tr><td><code>jorvel init &lt;name&gt; --tailwind</code></td><td>Wire Tailwind v3 + PostCSS in every generated app</td></tr>
-          <tr><td><code>jorvel scaffold app</code></td><td>Guided prompts to add a host + one or more remotes</td></tr>
-          <tr><td><code>jorvel generate host &lt;name&gt; --port &lt;n&gt;</code></td><td>Add a host app</td></tr>
-          <tr><td><code>jorvel generate remote &lt;name&gt; --port &lt;n&gt;</code></td><td>Add a remote app</td></tr>
-          <tr><td><code>jorvel generate wizard</code></td><td>Prompt-driven generator (no scaffold)</td></tr>
+          <tr><td><code>jorvel init &lt;name&gt; --pm &lt;m&gt;</code></td><td>Package manager: <code>pnpm</code> (default) · <code>npm</code> · <code>yarn</code> · <code>bun</code></td></tr>
+          <tr><td><code>jorvel init &lt;name&gt; --tailwind</code></td><td>Wire Tailwind v3 + PostCSS in the scaffolded apps</td></tr>
+          <tr><td><code>jorvel generate host &lt;name&gt;</code></td><td>Add a host app (React). Interactive: prompts to add Tailwind</td></tr>
+          <tr><td><code>jorvel generate remote &lt;name&gt;</code></td><td>Add a remote — <strong>auto-wired into the host</strong> (federation + host routes + REMOTES map). Prompts for framework, language, Tailwind</td></tr>
+          <tr><td><code>jorvel generate remote &lt;name&gt; --no-wire</code></td><td>Add a remote WITHOUT auto-wiring it into the host</td></tr>
+          <tr><td><code>jorvel generate remote &lt;name&gt; --framework vue --lang js --tailwind</code></td><td>Skip prompts: Vue remote in JavaScript with Tailwind</td></tr>
+          <tr><td><code>jorvel generate remote &lt;name&gt; --no-tailwind</code></td><td>Skip the Tailwind prompt (no Tailwind)</td></tr>
+          <tr><td><code>jorvel generate wizard</code></td><td>Prompt-driven generator (framework + Tailwind per app)</td></tr>
           <tr><td><code>jorvel generate types</code></td><td>Emit the host&apos;s <code>src/remotes.d.ts</code> from its federation/routes wiring (so <code>import(&apos;remote/App&apos;)</code> type-checks)</td></tr>
           <tr><td><code>jorvel add remote &lt;name&gt; [--port n] [--url …]</code></td><td>Wire an existing remote into the host: federation map + route + <code>remotes.d.ts</code> + bootstrap REMOTES/NavLink</td></tr>
           <tr><td><code>jorvel add db [app] [--driver sqlite|libsql]</code></td><td>Scaffold a Drizzle ORM backend into an app: schema + client + migrations + seed + a <code>defineLoader</code> data module</td></tr>

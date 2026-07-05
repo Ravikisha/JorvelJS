@@ -133,6 +133,33 @@ describe('jorvel routes', () => {
     expect(m.routes.filter((r: { remote: string }) => r.remote === 'dashboard')).toHaveLength(1);
   });
 
+  it('scans pages authored as .mjs / .cjs / .js / .jsx (not just .tsx)', async () => {
+    const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-routes-ext-'))) as string;
+    const appsDir = path.join(tmp, 'apps');
+    const dashDir = path.join(appsDir, 'dashboard');
+    await fs.ensureDir(path.join(dashDir, 'src', 'pages', 'reports'));
+    await fs.writeJson(path.join(dashDir, 'jorvel.app.json'), { name: 'dashboard', type: 'remote', port: 3001 });
+    await fs.writeJson(path.join(dashDir, 'tsconfig.json'), { compilerOptions: {} });
+    // Same route table, five different source extensions.
+    await fs.outputFile(path.join(dashDir, 'src', 'pages', 'index.mjs'), 'export default () => null;\n');
+    await fs.outputFile(path.join(dashDir, 'src', 'pages', 'about.cjs'), 'module.exports = () => null;\n');
+    await fs.outputFile(path.join(dashDir, 'src', 'pages', 'contact.js'), 'export default () => null;\n');
+    await fs.outputFile(path.join(dashDir, 'src', 'pages', 'help.jsx'), 'export default () => null;\n');
+    await fs.outputFile(path.join(dashDir, 'src', 'pages', 'reports', '[id].mjs'), 'export default () => null;\n');
+
+    await runCommand(['--dir', tmp], tmp);
+
+    const manifest = await fs.readJson(path.join(dashDir, 'jorvel.routes.json'));
+    const paths = manifest.routes.map((r: { path: string }) => r.path).sort();
+    expect(paths).toEqual(['/', '/about', '/contact', '/help', '/reports/:id'].sort());
+
+    // The generated import module must strip the extension (bare specifier).
+    const mod = await fs.readFile(path.join(dashDir, 'src', 'jorvel.routes.js'), 'utf8');
+    expect(mod).toMatch(/import\(["']\.\/pages\/index["']\)/);
+    expect(mod).not.toMatch(/\.mjs["']\)/);
+    expect(mod).not.toMatch(/\.cjs["']\)/);
+  });
+
   it('generates correct import path inside jorvel.routes.ts', async () => {
     const tmp = (await fs.mkdtemp(path.join(os.tmpdir(), 'jorvel-routes-'))) as string;
     const { dashDir } = await scaffoldWorkspace(tmp);

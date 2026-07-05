@@ -7,12 +7,24 @@ import { discoverApps } from '../discovery.js';
 import { attachFederationDiff } from './federation-diff.js';
 import { attachFederationImpact } from './federation-impact.js';
 
+type AppFramework = 'react' | 'vue' | 'solid' | 'svelte' | 'angular';
+
 type AppMeta = {
   name: string;
   type: 'host' | 'remote';
   port: number;
+  framework?: AppFramework;
   exposes?: Record<string, string>;
   shared?: Array<string>;
+};
+
+/** Framework-runtime packages shared as singletons among same-framework apps. */
+const FRAMEWORK_SHARED: Record<AppFramework, string[]> = {
+  react: ['react', 'react-dom'],
+  vue: ['vue'],
+  solid: ['solid-js'],
+  svelte: ['svelte'],
+  angular: ['@angular/core', '@angular/common', '@angular/platform-browser', 'rxjs'],
 };
 
 type FederationConfig = {
@@ -34,14 +46,27 @@ type FederationConfig = {
  *   host   → eager: true   (share-scope owner)
  *   remote → eager: false  (lazy-resolves via host scope)
  */
-function defaultShared(role: 'host' | 'remote'): FederationConfig['shared'] {
+function defaultShared(
+  role: 'host' | 'remote',
+  framework: AppFramework = 'react',
+): FederationConfig['shared'] {
   const eager = role === 'host';
-  return {
-    react: { singleton: true, eager, requiredVersion: false },
-    'react-dom': { singleton: true, eager, requiredVersion: false },
+  const shared: FederationConfig['shared'] = {
+    // The event bus is the framework-neutral cross-app channel — always a
+    // singleton so every app talks to the same instance.
     '@jorvel/event-bus': { singleton: true, eager, requiredVersion: false },
-    '@jorvel/runtime': { singleton: true, eager, requiredVersion: false },
   };
+  // The React runtime (router/RemoteOutlet) is shared only where React runs:
+  // the host and React remotes. Non-React remotes never import it.
+  if (framework === 'react') {
+    shared['@jorvel/runtime'] = { singleton: true, eager, requiredVersion: false };
+  }
+  // Share this app's own framework runtime as a singleton (dedupes across
+  // same-framework apps; a lone remote just consumes its own copy).
+  for (const pkg of FRAMEWORK_SHARED[framework]) {
+    shared[pkg] = { singleton: true, eager, requiredVersion: false };
+  }
+  return shared;
 }
 
 function mergeShared(...shared: Array<FederationConfig['shared']>) {
@@ -203,7 +228,14 @@ export const federationCommand = new Command('federation')
       const detectedName = await detectAppName(remote.dir, remote.meta);
       remoteFedName.set(remote.dir, toFederationName(detectedName));
       const exposes = await detectExposes(remote.dir, remote.meta);
-      const shared = mergeShared(defaultShared('remote'), await detectSharedFromPackageJson(remote.dir), await detectSharedFromSource(remote.dir));
+      const remoteFw = remote.meta.framework ?? 'react';
+      // A non-React remote embeds via @jorvel/mount — don't scan its source for
+      // React singletons (it has none); its framework runtime comes from defaultShared.
+      const detectedShared =
+        remoteFw === 'react'
+          ? mergeShared(await detectSharedFromPackageJson(remote.dir), await detectSharedFromSource(remote.dir))
+          : {};
+      const shared = mergeShared(defaultShared('remote', remoteFw), detectedShared);
 
       // Allow workspace config to add extra shared singleton deps.
       const extraShared = (workspaceCfg.federation?.shared ?? []).reduce((acc, name) => {
