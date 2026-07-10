@@ -76,7 +76,7 @@ function Hero() {
               <SparkleIcon className="h-3 w-3" />{' '}
               <SparklesText text="v0.2.0 — public beta" sparklesCount={4} />
             </Badge>
-            <h1 className="text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
+            <h1 className="font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
               The micro-frontend framework{' '}
               <AuroraText className="font-bold">
                 production teams reach for.
@@ -90,7 +90,7 @@ function Hero() {
             <div className="mt-9 flex flex-wrap gap-3">
               <Link href="/docs/getting-started">
                 <ShimmerButton
-                  background="linear-gradient(135deg, hsl(244 78% 60%), hsl(280 84% 60%))"
+                  background="linear-gradient(135deg, hsl(252 83% 60%), hsl(83 78% 50%))"
                   className="text-sm font-semibold"
                 >
                   Get started <ArrowRight className="ml-2 inline h-4 w-4" />
@@ -138,7 +138,7 @@ function Hero() {
               aria-hidden
               className="absolute -inset-6 rounded-3xl bg-[linear-gradient(135deg,hsl(var(--gradient-from)/0.25),hsl(var(--gradient-to)/0.25))] blur-2xl"
             />
-            <MagicCard className="relative p-1" gradientFrom="#a3e635" gradientTo="#22d3ee">
+            <MagicCard className="relative p-1" gradientFrom="#8b7cf6" gradientTo="#a3e635">
               <div className="rounded-xl p-4">
                 <CodeBlock
                   code={`// apps/shell/src/main.tsx
@@ -291,7 +291,7 @@ function FeatureGrid() {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <Badge variant="outline">Why JORVEL</Badge>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
+          <h2 className="mt-4 font-display text-3xl font-bold tracking-tight md:text-4xl">
             Everything a production MFE stack needs
           </h2>
           <p className="mt-4 text-muted-foreground">
@@ -356,7 +356,7 @@ function FrameworksAndDeploys() {
       <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-2">
         <div>
           <Badge variant="outline">UI frameworks</Badge>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight md:text-3xl">
+          <h2 className="mt-4 font-display text-2xl font-bold tracking-tight md:text-3xl">
             Bring any framework. Federate anything.
           </h2>
           <p className="mt-3 text-muted-foreground">
@@ -380,7 +380,7 @@ function FrameworksAndDeploys() {
         </div>
         <div>
           <Badge variant="outline">Deploy targets</Badge>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight md:text-3xl">
+          <h2 className="mt-4 font-display text-2xl font-bold tracking-tight md:text-3xl">
             One CLI. Every runtime.
           </h2>
           <p className="mt-3 text-muted-foreground">
@@ -443,7 +443,7 @@ export default function UserPage() {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <Badge variant="outline">Developer experience</Badge>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
+          <h2 className="mt-4 font-display text-3xl font-bold tracking-tight md:text-4xl">
             APIs you already know.
           </h2>
           <p className="mt-4 text-muted-foreground">
@@ -482,7 +482,7 @@ function PackageMatrix() {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <Badge variant="outline">Modular by design</Badge>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
+          <h2 className="mt-4 font-display text-3xl font-bold tracking-tight md:text-4xl">
             12+ packages. Use what you need.
           </h2>
           <p className="mt-4 text-muted-foreground">
@@ -546,7 +546,7 @@ function Testimonials() {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <Badge variant="outline">Loved by teams</Badge>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
+          <h2 className="mt-4 font-display text-3xl font-bold tracking-tight md:text-4xl">
             Quietly running production in a few teams already.
           </h2>
         </div>
@@ -573,9 +573,9 @@ function FinalCta() {
     <section className="relative overflow-hidden py-24">
       <div className="bg-grid pointer-events-none absolute inset-0 opacity-50" aria-hidden />
       <div className="glow-orb left-1/2 top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2" aria-hidden />
-      <Particles className="absolute inset-0" quantity={50} ease={70} color="#22d3ee" />
+      <Particles className="absolute inset-0" quantity={50} ease={70} color="#8b7cf6" />
       <div className="relative mx-auto w-full max-w-3xl px-4 text-center sm:px-6">
-        <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
+        <h2 className="font-display text-3xl font-bold tracking-tight md:text-5xl">
           Ship your first federated app{' '}
           <AuroraText className="font-bold">in under an hour.</AuroraText>
         </h2>

@@ -66,9 +66,7 @@ export function DocsToc({ className }: { className?: string }) {
         className,
       )}
     >
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-        On this page
-      </p>
+      <p className="eyebrow mb-3 !text-[10px] !tracking-[0.14em]">On this page</p>
       <ul className="border-l border-border text-sm">
         {headings.map((h) => (
           <li key={h.id}>
@@ -80,7 +78,7 @@ export function DocsToc({ className }: { className?: string }) {
                 '-ml-px block border-l-2 border-transparent py-1 leading-snug transition-colors hover:border-foreground/30 hover:text-foreground',
                 h.level === 3 ? 'pl-7' : 'pl-4',
                 active === h.id
-                  ? 'border-accent font-medium text-foreground'
+                  ? 'border-accent font-medium text-accent'
                   : 'text-muted-foreground',
               )}
             >

@@ -44,7 +44,7 @@ function Hero() {
         <Badge variant="accent" className="mb-4">
           <SparkleIcon className="h-3 w-3" /> Documentation
         </Badge>
-        <h1 className="text-4xl font-bold leading-tight tracking-tight md:text-5xl">
+        <h1 className="font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl">
           Build production micro-frontends.
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
@@ -93,10 +93,8 @@ function QuickFinds() {
   ];
   return (
     <section className="py-12">
-      <p className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        Get started
-      </p>
-      <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Quickfind</h2>
+      <p className="eyebrow mb-2">Get started</p>
+      <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">Quickfind</h2>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {items.map((it) => (
           <Link key={it.href} href={it.href} className="group block focus:outline-none">
@@ -200,10 +198,8 @@ function ByExperience() {
   ];
   return (
     <section className="py-12">
-      <p className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        Find the path that fits
-      </p>
-      <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Pick your track</h2>
+      <p className="eyebrow mb-2">Find the path that fits</p>
+      <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">Pick your track</h2>
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {tracks.map((t) => (
           <div key={t.title} className="rounded-xl border border-border bg-card p-6">
@@ -265,10 +261,8 @@ function Frameworks() {
   ];
   return (
     <section className="py-12">
-      <p className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        Bring any framework
-      </p>
-      <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Explore by stack</h2>
+      <p className="eyebrow mb-2">Bring any framework</p>
+      <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">Explore by stack</h2>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {fw.map((f) => (
           <Link key={f.label} href={f.href} className="group block focus:outline-none">

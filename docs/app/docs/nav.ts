@@ -8,6 +8,31 @@ export interface DocLink {
   label: string;
 }
 
+export interface FlatDocLink extends DocLink {
+  section: string;
+}
+
+/** DOC_NAV flattened into reading order, each link tagged with its section. */
+export function flattenNav(): FlatDocLink[] {
+  return DOC_NAV.flatMap((s) => s.links.map((l) => ({ ...l, section: s.title })));
+}
+
+/** Previous / next links relative to `href` in reading order (nulls at the ends). */
+export function siblings(href: string): {
+  prev: FlatDocLink | null;
+  next: FlatDocLink | null;
+  current: FlatDocLink | null;
+} {
+  const flat = flattenNav();
+  const i = flat.findIndex((l) => l.href === href);
+  if (i === -1) return { prev: null, next: null, current: null };
+  return {
+    prev: i > 0 ? flat[i - 1] : null,
+    next: i < flat.length - 1 ? flat[i + 1] : null,
+    current: flat[i],
+  };
+}
+
 export const DOC_NAV: DocSection[] = [
   {
     title: 'Get started',
