@@ -571,6 +571,28 @@ body {
   50% { background-position: 100% 50%; }
 }
 
+/* ── Mermaid ───────────────────────────────────────────────────────────── */
+/* Mermaid measures htmlLabels in a detached node (no prose styles), then we
+   inject the SVG inside `.prose-jorvel`. Without this reset, `.prose-jorvel p`
+   margins + line-height inflate labels past their measured boxes and the last
+   line clips. Match mermaid's own expectations: no margin, tight line-height. */
+.mermaid-canvas p,
+.mermaid-canvas .nodeLabel,
+.mermaid-canvas .edgeLabel,
+.mermaid-canvas .messageText,
+.mermaid-canvas span {
+  margin: 0;
+  padding: 0;
+  line-height: 1.3;
+}
+.mermaid-canvas foreignObject {
+  overflow: visible;
+}
+.mermaid-canvas svg {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Card sheen on hover */
 .card-sheen {
   position: relative;

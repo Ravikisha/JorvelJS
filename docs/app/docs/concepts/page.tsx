@@ -3,6 +3,7 @@ import { CodeBlock } from '@/components/site/code-block';
 import { Callout } from '@/components/docs/callout';
 import { CompassIcon } from '@/components/icons';
 import { TracingBeam } from '@/components/aceternity/tracing-beam';
+import { Mermaid } from '@/components/site/mermaid';
 
 export const metadata = {
   title: 'Concepts',
@@ -138,25 +139,19 @@ export const dashboardContract = defineFederationContract({
         Every interactive frame goes through the same five stages. Drop a breakpoint at any of
         them when debugging.
       </p>
-      <CodeBlock
-        language="text"
-        code={`Browser request
-   │
-   ▼
-1. Host bootstrap        getRouter() → subscribes to history + jorvel:navigate
-   │
-   ▼
-2. Route resolution      RemoteOutlet matches HOST_ROUTES against location.pathname
-   │
-   ▼
-3. Remote load           import('remote/Module') — Rspack ModuleFederationPlugin
-   │                     · fetches remoteEntry.js (deduped + SRI-checked)
-   │                     · bridges React/runtime share scope
-   ▼
-4. Sub-route resolution  RemoteApp matches subpath against pages[] (jorvel.routes.ts)
-   │
-   ▼
-5. Render + telemetry    jorvel:remote-load + onMetric('lcp') → observability hooks`}
+      <Mermaid
+        caption="Iris stages run in the host; lime stages run in the loaded remote."
+        chart={`
+flowchart TD
+    A(["Browser request"]) --> B
+    B["1 · Host bootstrap<br/>getRouter() → history + jorvel:navigate"]:::host
+    B --> C["2 · Route resolution<br/>RemoteOutlet matches HOST_ROUTES"]:::host
+    C --> D["3 · Remote load<br/>import('remote/Module')<br/>fetch remoteEntry.js · deduped + SRI · bridge scope"]:::remote
+    D --> E["4 · Sub-route resolution<br/>RemoteApp matches pages[] in jorvel.routes.ts"]:::remote
+    E --> F["5 · Render + telemetry<br/>jorvel:remote-load · onMetric('lcp')"]:::remote
+    classDef host fill:#8b7cf612,stroke:#8b7cf6,stroke-width:1.5px;
+    classDef remote fill:#84cc1612,stroke:#84cc16,stroke-width:1.5px;
+`}
       />
 
       <h2 id="design-principles">Design principles</h2>

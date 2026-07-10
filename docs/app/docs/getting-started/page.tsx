@@ -5,6 +5,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Callout } from '@/components/docs/callout';
 import { Steps, Step } from '@/components/docs/steps';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/docs/tabs';
+import { Mermaid } from '@/components/site/mermaid';
 import { ArrowRight, CheckIcon, RocketIcon, ShieldIcon, NetworkIcon } from '@/components/icons';
 
 export const metadata = {
@@ -234,6 +235,26 @@ export default function GettingStarted() {
         Understanding what runs where saves hours when debugging. The dev-server walkthrough below
         traces a single page navigation end-to-end.
       </p>
+      <Mermaid
+        caption="One navigation in dev — host on :3000, remote proxied from :3001."
+        chart={`
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant H as Host (:3000)
+    participant O as RemoteOutlet
+    participant F as Module Federation
+    participant R as Remote (dashboard)
+    B->>H: GET /dashboard/settings
+    H->>H: bootstrap.tsx → getRouter()
+    H->>O: mount RemoteOutlet
+    O->>F: match /dashboard/* → import('dashboard/App')
+    F->>R: fetch remoteEntry.js (proxied :3001)
+    Note over F,R: bridge the React share scope
+    R->>R: RemoteApp matches settings.tsx
+    R-->>B: rendered page
+`}
+      />
       <Steps>
         <Step title="1. Browser hits the host">
           <p className="mt-2">

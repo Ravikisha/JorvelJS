@@ -1,5 +1,6 @@
 import { CodeBlock } from '@/components/site/code-block';
 import { Callout } from '@/components/docs/callout';
+import { Mermaid } from '@/components/site/mermaid';
 
 export const metadata = {
   title: 'Architecture',
@@ -22,15 +23,32 @@ export default function Architecture() {
         served from its own URL/CDN. The host&apos;s route table maps URL prefixes to remotes; each
         remote resolves its own sub-paths.
       </p>
-      <CodeBlock
-        language="text"
-        code={`Browser ── GET /dashboard/orders/42
-   │
-   ▼
-Host (shell)                         Remote (dashboard)
-  route table: /dashboard/* ───────▶  loads dashboard/remoteEntry.js
-  RemoteOutlet renders               resolves /orders/:id
-  shared scope owner (React, …)      consumes host's shared React`}
+      <Mermaid
+        caption="Iris = host, lime = remote — the same colors used across the docs."
+        chart={`
+flowchart LR
+    B(["Browser"])
+    subgraph HOST ["Host · shell"]
+      direction TB
+      RT["Route table<br/>/dashboard/* → dashboard"]
+      RO["RemoteOutlet"]
+      SS[("Shared scope<br/>React · runtime · bus")]
+      RT --> RO
+    end
+    subgraph REMOTE ["Remote · dashboard"]
+      direction TB
+      RE["remoteEntry.js"]
+      SUB["Resolves /orders/:id"]
+      RE --> SUB
+    end
+    B -->|"GET /dashboard/orders/42"| RT
+    RO -->|"import('dashboard/App')"| RE
+    SS -.->|"shares one React"| RE
+    class HOST host
+    class REMOTE remote
+    classDef host fill:#8b7cf612,stroke:#8b7cf6,stroke-width:1.5px;
+    classDef remote fill:#84cc1612,stroke:#84cc16,stroke-width:1.5px;
+`}
       />
 
       <h2 id="share-scope">The share scope</h2>
@@ -65,6 +83,38 @@ const HOST_ROUTES = [{ path: '/dashboard/*', remote: 'dashboard', module: './App
       />
 
       <h2 id="lifecycle">Request lifecycle (SSR)</h2>
+      <Mermaid
+        caption="One request, server side — each hop can short-circuit the next."
+        chart={`
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant M as Middleware
+    participant A as API router
+    participant C as ISR cache
+    participant L as Loaders
+    participant R as Renderer
+    participant D as Adapter
+    B->>M: GET /dashboard/orders/42
+    opt auth / geo / rewrite
+      M-->>B: redirect or rewrite
+    end
+    M->>A: next()
+    opt API route matches
+      A-->>B: JSON response
+    end
+    A->>C: serveWithISR check
+    alt fresh in cache
+      C-->>B: cached HTML
+    else miss or stale
+      C->>L: runLoaders (per-request context)
+      L->>R: data serialized for hydration
+      Note over R: renderRouteToString / stream<br/>remotes via ssrRenderRemote
+      R->>D: HTML + head (nonce, SRI, preloads)
+      D-->>B: streamed response
+    end
+`}
+      />
       <ol>
         <li><strong>Middleware</strong> runs first (auth/geo/rewrite) — <code>runMiddleware</code> → next / redirect / rewrite / respond.</li>
         <li><strong>API routes</strong> get a chance (<code>createApiRouter().handle()</code>); non-match falls through.</li>
