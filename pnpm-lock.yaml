@@ -10,13 +10,13 @@ importers:
     devDependencies:
       '@changesets/cli':
         specifier: ^2.27.9
-        version: 2.31.0(@types/node@22.19.13)
+        version: 2.31.0(@types/node@26.1.1)
       '@playwright/test':
         specifier: ^1.54.2
         version: 1.58.2
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -31,7 +31,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
       wait-on:
         specifier: ^8.0.4
         version: 8.0.5
@@ -45,8 +45,8 @@ importers:
         specifier: ^11.16.0
         version: 11.16.0
       motion:
-        specifier: ^12.42.0
-        version: 12.42.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^12.42.2
+        version: 12.42.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next:
         specifier: 16.2.4
         version: 16.2.4(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -95,7 +95,7 @@ importers:
     devDependencies:
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/01-react-ts/apps/dashboard:
     dependencies:
@@ -150,7 +150,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -162,7 +162,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       prettier:
         specifier: ^3.4.2
         version: 3.9.4
@@ -174,7 +174,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/01-react-ts/apps/shell:
     dependencies:
@@ -229,7 +229,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -241,7 +241,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       prettier:
         specifier: ^3.4.2
         version: 3.9.4
@@ -253,13 +253,13 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/02-react-js:
     devDependencies:
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/02-react-js/apps/dashboard:
     dependencies:
@@ -308,7 +308,7 @@ importers:
         version: 14.6.1(@testing-library/dom@10.4.1)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -320,7 +320,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       prettier:
         specifier: ^3.4.2
         version: 3.9.4
@@ -329,7 +329,7 @@ importers:
         version: 0.14.2
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/02-react-js/apps/shell:
     dependencies:
@@ -378,7 +378,7 @@ importers:
         version: 14.6.1(@testing-library/dom@10.4.1)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -390,7 +390,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       prettier:
         specifier: ^3.4.2
         version: 3.9.4
@@ -399,13 +399,13 @@ importers:
         version: 0.14.2
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/03-vue:
     devDependencies:
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/03-vue/apps/shell:
     dependencies:
@@ -460,7 +460,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -472,7 +472,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       prettier:
         specifier: ^3.4.2
         version: 3.9.4
@@ -484,7 +484,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/03-vue/apps/storefront:
     dependencies:
@@ -530,7 +530,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
       vue-loader:
         specifier: ^17.4.2
         version: 17.4.2(vue@3.5.39(typescript@5.9.3))(webpack@5.108.4(lightningcss@1.32.0))
@@ -539,7 +539,7 @@ importers:
     devDependencies:
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/04-polyglot/apps/dashboard:
     dependencies:
@@ -597,7 +597,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -609,7 +609,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       postcss:
         specifier: ^8.5.1
         version: 8.5.16
@@ -630,7 +630,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/04-polyglot/apps/docs-site:
     dependencies:
@@ -691,7 +691,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/04-polyglot/apps/pricing:
     dependencies:
@@ -749,7 +749,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
       vue-loader:
         specifier: ^17.4.2
         version: 17.4.2(vue@3.5.39(typescript@5.9.3))(webpack@5.108.4(lightningcss@1.32.0)(postcss@8.5.16))
@@ -828,7 +828,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/04-polyglot/apps/shell:
     dependencies:
@@ -886,7 +886,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -898,7 +898,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       postcss:
         specifier: ^8.5.1
         version: 8.5.16
@@ -919,7 +919,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/04-polyglot/apps/widgets:
     dependencies:
@@ -989,13 +989,13 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/05-tailwind:
     devDependencies:
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/05-tailwind/apps/marketing:
     dependencies:
@@ -1053,7 +1053,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -1065,7 +1065,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       postcss:
         specifier: ^8.5.1
         version: 8.5.16
@@ -1086,7 +1086,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/05-tailwind/apps/shell:
     dependencies:
@@ -1144,7 +1144,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -1156,7 +1156,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       postcss:
         specifier: ^8.5.1
         version: 8.5.16
@@ -1177,13 +1177,13 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/06-shadcn:
     devDependencies:
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/06-shadcn/apps/shell:
     dependencies:
@@ -1241,7 +1241,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -1253,7 +1253,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       postcss:
         specifier: ^8.5.1
         version: 8.5.16
@@ -1274,7 +1274,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   examples/06-shadcn/apps/ui:
     dependencies:
@@ -1332,7 +1332,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitest/coverage-v8':
         specifier: ^2.1.9
-        version: 2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))
+        version: 2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -1344,7 +1344,7 @@ importers:
         version: 25.0.1
       msw:
         specifier: ^2.7.0
-        version: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
+        version: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
       postcss:
         specifier: ^8.5.1
         version: 8.5.16
@@ -1365,7 +1365,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/adapter-angular:
     dependencies:
@@ -1384,7 +1384,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/adapter-aws-lambda:
     dependencies:
@@ -1490,7 +1490,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/adapter-solid:
     dependencies:
@@ -1506,7 +1506,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/adapter-svelte:
     dependencies:
@@ -1522,7 +1522,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/adapter-vercel:
     dependencies:
@@ -1551,7 +1551,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
       vue:
         specifier: ^3.5.13
         version: 3.5.39(typescript@5.9.3)
@@ -1584,7 +1584,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/events:
     devDependencies:
@@ -1593,7 +1593,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/i18n:
     devDependencies:
@@ -1608,7 +1608,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/mount:
     devDependencies:
@@ -1617,7 +1617,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/observability:
     devDependencies:
@@ -1626,7 +1626,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/prettier-config: {}
 
@@ -1644,7 +1644,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.49.0)
 
   libs/runtime:
     dependencies:
@@ -1669,7 +1669,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/security:
     devDependencies:
@@ -1681,7 +1681,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.49.0)
 
   libs/ssr:
     dependencies:
@@ -1712,7 +1712,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.49.0)
 
   libs/state:
     devDependencies:
@@ -1727,7 +1727,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/tsconfig: {}
 
@@ -1738,7 +1738,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   libs/ui:
     devDependencies:
@@ -1759,7 +1759,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   packages/cli:
     dependencies:
@@ -1821,7 +1821,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.49.0)
 
   packages/create-jorvel:
     dependencies:
@@ -1840,13 +1840,13 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.49.0)
 
   packages/devtools-extension:
     devDependencies:
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
 
   packages/mcp-docs:
     dependencies:
@@ -1865,7 +1865,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+        version: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.49.0)
 
 packages:
 
@@ -3716,6 +3716,9 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/estree@1.0.9':
+    resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
+
   '@types/express-serve-static-core@4.19.8':
     resolution: {integrity: sha512-02S5fmqeoKzVZCHPZid4b8JH2eM5HzQLZWN2FohQEy/0eXTq8VXZfSN6Pcr3F6N9R/vNrj7cpgbhjie6m/1tCA==}
 
@@ -3763,6 +3766,9 @@ packages:
 
   '@types/node@22.19.13':
     resolution: {integrity: sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw==}
+
+  '@types/node@26.1.1':
+    resolution: {integrity: sha512-nxAkRSVkN1Y0JC1W8ky/fTfkGsMmcrRsbx+3XoZE+rMOX71kLYTV7fLXpqud1GpbpP5TuffXFqfX7fH2GgZREw==}
 
   '@types/prismjs@1.26.6':
     resolution: {integrity: sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw==}
@@ -4137,6 +4143,11 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  acorn@8.17.0:
+    resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
@@ -4375,8 +4386,8 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
-  browserslist@4.28.4:
-    resolution: {integrity: sha512-MTc8i/x9jBQd1iMw2CFGS+rwMa07eYjLR0CCTLDACl9xhxy+nIs3KeML/biicXtk9JrZ6dnnTatmc7ErPXIxqw==}
+  browserslist@4.28.5:
+    resolution: {integrity: sha512-Cu2E6QejHWzuDMTkuwgpABFgDfZrXLQq5V13YOACZx4mFAG4IwGTbTfHPMr4WtxlHoXSM8FIuRwYYCz5XiabaQ==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
@@ -4417,8 +4428,8 @@ packages:
   caniuse-lite@1.0.30001790:
     resolution: {integrity: sha512-bOoxfJPyYo+ds6W0YfptaCWbFnJYjh2Y1Eow5lRv+vI2u8ganPZqNm1JwNh0t2ELQCqIWg4B3dWEusgAmsoyOw==}
 
-  caniuse-lite@1.0.30001800:
-    resolution: {integrity: sha512-MMHtuAz9Ys840zAY5F4k6fV5GaivZ9sPk+nz0mY+GYVzRBnYkN0mpqkSR92oWRQ19yQWo4HvBV/FnC16AJX8MA==}
+  caniuse-lite@1.0.30001803:
+    resolution: {integrity: sha512-g/uHREV2ZpK9qMalCsWaxmA6ol+DX8GYhuf3T40RKoP+oL7vhRJh8LNt73PCjpnR6l14FzfPrB5Yux4PKm2meg==}
 
   chai@5.3.3:
     resolution: {integrity: sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw==}
@@ -4924,8 +4935,8 @@ packages:
   electron-to-chromium@1.5.343:
     resolution: {integrity: sha512-YHnQ3MXI08icvL9ZKnEBy05F2EQ8ob01UaMOuMbM8l+4UcAq6MPPbBTJBbsBUg3H8JeZNt+O4fjsoWth3p6IFg==}
 
-  electron-to-chromium@1.5.387:
-    resolution: {integrity: sha512-TaxwufTFDufvPEoXdhwVrA3UdFWBeWGkYoJ1K8ldF1xe6gKfth6iRNS5lTQ5JPNOHdGQm8PT1QYKUqFLCiUefQ==}
+  electron-to-chromium@1.5.389:
+    resolution: {integrity: sha512-cEto7aeOqBfU1D+c5py5pE+ooscKE75JifxLBdFUZsqAxRS6y7kebtxAZvICszSl05gPjYHDTjY+lXpyGvpJbg==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -4945,8 +4956,8 @@ packages:
     resolution: {integrity: sha512-Qohcme7V1inbAfvjItgw0EaxVX5q2rdVEZHRBrEQdRZTssLDGsL8Lwrznl8oQ/6kuTJONLaDcGjkNP247XEhcA==}
     engines: {node: '>=10.13.0'}
 
-  enhanced-resolve@5.24.1:
-    resolution: {integrity: sha512-7DdUaTjmNwMcH2gLr1qycesKII3BK4RLy/mdAb7x10Lq7bR4aNKHt1BR1ZALSv0rPM/hF5wYF0PhGop/rJm8vw==}
+  enhanced-resolve@5.24.2:
+    resolution: {integrity: sha512-rpsZEGT1jFuve6QlpyRp9ckQ+kN61hvF9BzCPyMdaKTm8UJce96KBn3sorXOFXlzjPrs3Vc4T1NsSroZ3PxlFw==}
     engines: {node: '>=10.13.0'}
 
   enquirer@2.4.1:
@@ -5357,8 +5368,8 @@ packages:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
 
-  framer-motion@12.42.0:
-    resolution: {integrity: sha512-wp7EJnfWaaEScVygKv3e20udoRz+LbtxScsuTkakAxfXmt+ReC6WyPW2nINRAGvd+hG9odwcjBLyOTPjH5pBRA==}
+  framer-motion@12.42.2:
+    resolution: {integrity: sha512-5XY9luDiu0oHfHBjpDthFMh0ES+122w6p/papSJBweMkO8Sn+PW2QaEgRblQBpWFnuvZS5qvarpt/hO2pjGmnw==}
     peerDependencies:
       '@emotion/is-prop-valid': '*'
       react: ^18.0.0 || ^19.0.0
@@ -6295,14 +6306,14 @@ packages:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-  motion-dom@12.42.0:
-    resolution: {integrity: sha512-M63h4n8R+quJdNhBwuLlgxM+OLYa9+I/T2pzDRboB9fLXRdbou+Gw7Zury+SkpaCyACP1JHSjHgZ1EgTkBr30w==}
+  motion-dom@12.42.2:
+    resolution: {integrity: sha512-5gIMWLp/PycBtJRJWRgjxke5n8dlvkSn2DrYW+tr3XcqAZY1xZh6BJyooJXCM8wdfM7wfMjkBJNLge1CKPUIRA==}
 
   motion-utils@12.39.0:
     resolution: {integrity: sha512-8nadJAJjTtqRkmRF36FoJTrywK9nnFmnPwnSMyxaOCU7GDjN9RTMJIxx9De8ErM+vpPhMccr/6fo5WciyQLnMQ==}
 
-  motion@12.42.0:
-    resolution: {integrity: sha512-Qhwvu9sVl5/URSq5CNzwMCpSKK8Uhnrwb6VO977kZyj/wOCS7mWebJUnBoHx5cZU1Zv8a9BD5CSICWKAlrLJgA==}
+  motion@12.42.2:
+    resolution: {integrity: sha512-Atvv11yUKIid41cVrRBDVX5m8tF8kNpExRSlbpt6APClhDjtwQssgFHhQzejxw7/7YYbjHSPKBVbHo05BuJT5Q==}
     peerDependencies:
       '@emotion/is-prop-valid': '*'
       react: ^18.0.0 || ^19.0.0
@@ -6416,8 +6427,8 @@ packages:
   node-releases@2.0.38:
     resolution: {integrity: sha512-3qT/88Y3FbH/Kx4szpQQ4HzUbVrHPKTLVpVocKiLfoYvw9XSGOX2FmD2d6DrXbVYyAQTF2HeF6My8jmzx7/CRw==}
 
-  node-releases@2.0.50:
-    resolution: {integrity: sha512-J6l92tKHX6w8Jy5nO1Vuc01NoIiRGi/d6qBKVxh+IQ8Cr3b6HbVNfKiF8ZpFKufTwpwxMmce2W3iQZ861ZRyTg==}
+  node-releases@2.0.51:
+    resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
 
   normalize-path@3.0.0:
@@ -7245,8 +7256,8 @@ packages:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==}
     engines: {node: '>=8'}
 
-  terser@5.48.0:
-    resolution: {integrity: sha512-J/9An6vs9Us6wKRriSFXBWdRZapREHqFzdNUKk0pmu804EMR6dr6winwo7e5JDxN4xahxQsuysyYFwlwj4XN/Q==}
+  terser@5.49.0:
+    resolution: {integrity: sha512-SNiDnXyHSrxVcIOtVbULzcTmniUiwcV7Nwdyj1twVubeTmbjoa8p69KKDpfkdoOavuM4/GRm1+ykI8qqnavHoA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -7424,6 +7435,9 @@ packages:
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+
+  undici-types@8.3.0:
+    resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
 
   undici@7.22.0:
     resolution: {integrity: sha512-RqslV2Us5BrllB+JeiZnK4peryVTndy9Dnqq62S3yYRRTj0tFQCwEniUy2167skdGOy3vqRzEvl1Dm4sV2ReDg==}
@@ -7612,8 +7626,8 @@ packages:
       webpack-cli:
         optional: true
 
-  webpack-sources@3.5.0:
-    resolution: {integrity: sha512-HPuy+uuoTCaaoEoI1LQ3JN9+vrPBvEesnnX1jADHy728cHSMlq4wUc4afYqahq2B1mhQVZxCXOkNTnXltr+2vQ==}
+  webpack-sources@3.5.1:
+    resolution: {integrity: sha512-jyuiGJdtvY434z5bUZrjz67v76/ePNvFZTp9Mdz29IlH4+GPsgyGjiv0fKI+M7BdkU6ADjulUcKAd3tUK3WlEw==}
     engines: {node: '>=10.13.0'}
 
   webpack@5.108.4:
@@ -8165,7 +8179,7 @@ snapshots:
     dependencies:
       '@changesets/types': 6.1.0
 
-  '@changesets/cli@2.31.0(@types/node@22.19.13)':
+  '@changesets/cli@2.31.0(@types/node@26.1.1)':
     dependencies:
       '@changesets/apply-release-plan': 7.1.1
       '@changesets/assemble-release-plan': 6.0.10
@@ -8181,7 +8195,7 @@ snapshots:
       '@changesets/should-skip-package': 0.1.2
       '@changesets/types': 6.1.0
       '@changesets/write': 0.4.0
-      '@inquirer/external-editor': 1.0.3(@types/node@22.19.13)
+      '@inquirer/external-editor': 1.0.3(@types/node@26.1.1)
       '@manypkg/get-packages': 1.1.3
       ansi-colors: 4.1.3
       enquirer: 2.4.1
@@ -8693,6 +8707,14 @@ snapshots:
       '@inquirer/type': 4.0.7(@types/node@22.19.13)
     optionalDependencies:
       '@types/node': 22.19.13
+    optional: true
+
+  '@inquirer/confirm@6.1.1(@types/node@26.1.1)':
+    dependencies:
+      '@inquirer/core': 11.2.1(@types/node@26.1.1)
+      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+    optionalDependencies:
+      '@types/node': 26.1.1
 
   '@inquirer/core@11.2.1(@types/node@22.19.13)':
     dependencies:
@@ -8705,6 +8727,19 @@ snapshots:
       signal-exit: 4.1.0
     optionalDependencies:
       '@types/node': 22.19.13
+    optional: true
+
+  '@inquirer/core@11.2.1(@types/node@26.1.1)':
+    dependencies:
+      '@inquirer/ansi': 2.0.7
+      '@inquirer/figures': 2.0.7
+      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      cli-width: 4.1.0
+      fast-wrap-ansi: 0.2.2
+      mute-stream: 3.0.0
+      signal-exit: 4.1.0
+    optionalDependencies:
+      '@types/node': 26.1.1
 
   '@inquirer/core@9.2.1':
     dependencies:
@@ -8733,12 +8768,12 @@ snapshots:
       '@inquirer/type': 2.0.0
       yoctocolors-cjs: 2.1.3
 
-  '@inquirer/external-editor@1.0.3(@types/node@22.19.13)':
+  '@inquirer/external-editor@1.0.3(@types/node@26.1.1)':
     dependencies:
       chardet: 2.1.1
       iconv-lite: 0.7.2
     optionalDependencies:
-      '@types/node': 22.19.13
+      '@types/node': 26.1.1
 
   '@inquirer/figures@1.0.15': {}
 
@@ -8801,6 +8836,11 @@ snapshots:
   '@inquirer/type@4.0.7(@types/node@22.19.13)':
     optionalDependencies:
       '@types/node': 22.19.13
+    optional: true
+
+  '@inquirer/type@4.0.7(@types/node@26.1.1)':
+    optionalDependencies:
+      '@types/node': 26.1.1
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -9724,6 +9764,8 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/estree@1.0.9': {}
+
   '@types/express-serve-static-core@4.19.8':
     dependencies:
       '@types/node': 22.19.13
@@ -9782,6 +9824,11 @@ snapshots:
   '@types/node@22.19.13':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/node@26.1.1':
+    dependencies:
+      undici-types: 8.3.0
+    optional: true
 
   '@types/prismjs@1.26.6': {}
 
@@ -10010,7 +10057,7 @@ snapshots:
       d3-selection: 3.0.0
       d3-transition: 3.0.1(d3-selection@3.0.0)
 
-  '@vitest/coverage-v8@2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))':
+  '@vitest/coverage-v8@2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 0.2.3
@@ -10024,11 +10071,11 @@ snapshots:
       std-env: 3.10.0
       test-exclude: 7.0.2
       tinyrainbow: 1.2.0
-      vitest: 2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+      vitest: 2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/coverage-v8@2.1.9(vitest@2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0))':
+  '@vitest/coverage-v8@2.1.9(vitest@2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 0.2.3
@@ -10042,7 +10089,7 @@ snapshots:
       std-env: 3.10.0
       test-exclude: 7.0.2
       tinyrainbow: 1.2.0
-      vitest: 2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0)
+      vitest: 2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -10053,14 +10100,23 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.9(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0))':
+  '@vitest/mocker@2.1.9(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.49.0))':
     dependencies:
       '@vitest/spy': 2.1.9
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
       msw: 2.14.6(@types/node@22.19.13)(typescript@5.9.3)
-      vite: 5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0)
+      vite: 5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.49.0)
+
+  '@vitest/mocker@2.1.9(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0))':
+    dependencies:
+      '@vitest/spy': 2.1.9
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      msw: 2.14.6(@types/node@26.1.1)(typescript@5.9.3)
+      vite: 5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0)
 
   '@vitest/pretty-format@2.1.9':
     dependencies:
@@ -10231,9 +10287,9 @@ snapshots:
       mime-types: 3.0.2
       negotiator: 1.0.0
 
-  acorn-import-phases@1.0.4(acorn@8.16.0):
+  acorn-import-phases@1.0.4(acorn@8.17.0):
     dependencies:
-      acorn: 8.16.0
+      acorn: 8.17.0
 
   acorn-jsx@5.3.2(acorn@8.16.0):
     dependencies:
@@ -10244,6 +10300,8 @@ snapshots:
       acorn: 8.16.0
 
   acorn@8.16.0: {}
+
+  acorn@8.17.0: {}
 
   agent-base@7.1.4: {}
 
@@ -10514,13 +10572,13 @@ snapshots:
       node-releases: 2.0.38
       update-browserslist-db: 1.2.3(browserslist@4.28.2)
 
-  browserslist@4.28.4:
+  browserslist@4.28.5:
     dependencies:
       baseline-browser-mapping: 2.10.42
-      caniuse-lite: 1.0.30001800
-      electron-to-chromium: 1.5.387
-      node-releases: 2.0.50
-      update-browserslist-db: 1.2.3(browserslist@4.28.4)
+      caniuse-lite: 1.0.30001803
+      electron-to-chromium: 1.5.389
+      node-releases: 2.0.51
+      update-browserslist-db: 1.2.3(browserslist@4.28.5)
 
   buffer-from@1.1.2: {}
 
@@ -10557,7 +10615,7 @@ snapshots:
 
   caniuse-lite@1.0.30001790: {}
 
-  caniuse-lite@1.0.30001800: {}
+  caniuse-lite@1.0.30001803: {}
 
   chai@5.3.3:
     dependencies:
@@ -11052,7 +11110,7 @@ snapshots:
 
   electron-to-chromium@1.5.343: {}
 
-  electron-to-chromium@1.5.387: {}
+  electron-to-chromium@1.5.389: {}
 
   emoji-regex@8.0.0: {}
 
@@ -11067,7 +11125,7 @@ snapshots:
       graceful-fs: 4.2.11
       tapable: 2.3.3
 
-  enhanced-resolve@5.24.1:
+  enhanced-resolve@5.24.2:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -11731,9 +11789,9 @@ snapshots:
 
   forwarded@0.2.0: {}
 
-  framer-motion@12.42.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+  framer-motion@12.42.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
-      motion-dom: 12.42.0
+      motion-dom: 12.42.2
       motion-utils: 12.39.0
       tslib: 2.8.1
     optionalDependencies:
@@ -12637,7 +12695,7 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
-      terser: 5.48.0
+      terser: 5.49.0
       webpack: 5.108.4(lightningcss@1.32.0)(postcss@8.5.16)
     optionalDependencies:
       lightningcss: 1.32.0
@@ -12648,22 +12706,22 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
-      terser: 5.48.0
+      terser: 5.49.0
       webpack: 5.108.4(lightningcss@1.32.0)
     optionalDependencies:
       lightningcss: 1.32.0
 
   minipass@7.1.3: {}
 
-  motion-dom@12.42.0:
+  motion-dom@12.42.2:
     dependencies:
       motion-utils: 12.39.0
 
   motion-utils@12.39.0: {}
 
-  motion@12.42.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+  motion@12.42.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
-      framer-motion: 12.42.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      framer-motion: 12.42.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       tslib: 2.8.1
     optionalDependencies:
       react: 19.2.4
@@ -12680,6 +12738,32 @@ snapshots:
   msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3):
     dependencies:
       '@inquirer/confirm': 6.1.1(@types/node@22.19.13)
+      '@mswjs/interceptors': 0.41.9
+      '@open-draft/deferred-promise': 3.0.0
+      '@types/statuses': 2.0.6
+      cookie: 1.1.1
+      graphql: 16.14.2
+      headers-polyfill: 5.0.1
+      is-node-process: 1.2.0
+      outvariant: 1.4.3
+      path-to-regexp: 6.3.0
+      picocolors: 1.1.1
+      rettime: 0.11.11
+      statuses: 2.0.2
+      strict-event-emitter: 0.5.1
+      tough-cookie: 6.0.1
+      type-fest: 5.8.0
+      until-async: 3.0.2
+      yargs: 17.7.3
+    optionalDependencies:
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - '@types/node'
+    optional: true
+
+  msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3):
+    dependencies:
+      '@inquirer/confirm': 6.1.1(@types/node@26.1.1)
       '@mswjs/interceptors': 0.41.9
       '@open-draft/deferred-promise': 3.0.0
       '@types/statuses': 2.0.6
@@ -12763,7 +12847,7 @@ snapshots:
 
   node-releases@2.0.38: {}
 
-  node-releases@2.0.50: {}
+  node-releases@2.0.51: {}
 
   normalize-path@3.0.0: {}
 
@@ -13743,10 +13827,10 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  terser@5.48.0:
+  terser@5.49.0:
     dependencies:
       '@jridgewell/source-map': 0.3.11
-      acorn: 8.16.0
+      acorn: 8.17.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
@@ -13927,6 +14011,9 @@ snapshots:
 
   undici-types@6.21.0: {}
 
+  undici-types@8.3.0:
+    optional: true
+
   undici@7.22.0: {}
 
   unicorn-magic@0.3.0: {}
@@ -13969,9 +14056,9 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  update-browserslist-db@1.2.3(browserslist@4.28.4):
+  update-browserslist-db@1.2.3(browserslist@4.28.5):
     dependencies:
-      browserslist: 4.28.4
+      browserslist: 4.28.5
       escalade: 3.2.0
       picocolors: 1.1.1
 
@@ -13989,13 +14076,13 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite-node@2.1.9(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0):
+  vite-node@2.1.9(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.49.0):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 1.1.2
-      vite: 5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0)
+      vite: 5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.49.0)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -14007,7 +14094,25 @@ snapshots:
       - supports-color
       - terser
 
-  vite@5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0):
+  vite-node@2.1.9(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0):
+    dependencies:
+      cac: 6.7.14
+      debug: 4.4.3
+      es-module-lexer: 1.7.0
+      pathe: 1.1.2
+      vite: 5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0)
+    transitivePeerDependencies:
+      - '@types/node'
+      - less
+      - lightningcss
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+
+  vite@5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.49.0):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.16
@@ -14016,12 +14121,23 @@ snapshots:
       '@types/node': 22.19.13
       fsevents: 2.3.3
       lightningcss: 1.32.0
-      terser: 5.48.0
+      terser: 5.49.0
 
-  vitest@2.1.9(@types/node@22.19.13)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0):
+  vite@5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0):
+    dependencies:
+      esbuild: 0.21.5
+      postcss: 8.5.16
+      rollup: 4.59.0
+    optionalDependencies:
+      '@types/node': 26.1.1
+      fsevents: 2.3.3
+      lightningcss: 1.32.0
+      terser: 5.49.0
+
+  vitest@2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.49.0):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0))
+      '@vitest/mocker': 2.1.9(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.49.0))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
@@ -14037,11 +14153,47 @@ snapshots:
       tinyexec: 0.3.2
       tinypool: 1.1.1
       tinyrainbow: 1.2.0
-      vite: 5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0)
-      vite-node: 2.1.9(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0)
+      vite: 5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.49.0)
+      vite-node: 2.1.9(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.49.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.19.13
+      jsdom: 28.1.0
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - msw
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+
+  vitest@2.1.9(@types/node@26.1.1)(jsdom@25.0.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0):
+    dependencies:
+      '@vitest/expect': 2.1.9
+      '@vitest/mocker': 2.1.9(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0))
+      '@vitest/pretty-format': 2.1.9
+      '@vitest/runner': 2.1.9
+      '@vitest/snapshot': 2.1.9
+      '@vitest/spy': 2.1.9
+      '@vitest/utils': 2.1.9
+      chai: 5.3.3
+      debug: 4.4.3
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      pathe: 1.1.2
+      std-env: 3.10.0
+      tinybench: 2.9.0
+      tinyexec: 0.3.2
+      tinypool: 1.1.1
+      tinyrainbow: 1.2.0
+      vite: 5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0)
+      vite-node: 2.1.9(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 26.1.1
       jsdom: 25.0.1
     transitivePeerDependencies:
       - less
@@ -14054,10 +14206,10 @@ snapshots:
       - supports-color
       - terser
 
-  vitest@2.1.9(@types/node@22.19.13)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(terser@5.48.0):
+  vitest@2.1.9(@types/node@26.1.1)(jsdom@28.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(terser@5.49.0):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(msw@2.14.6(@types/node@22.19.13)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0))
+      '@vitest/mocker': 2.1.9(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
@@ -14073,11 +14225,11 @@ snapshots:
       tinyexec: 0.3.2
       tinypool: 1.1.1
       tinyrainbow: 1.2.0
-      vite: 5.4.21(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0)
-      vite-node: 2.1.9(@types/node@22.19.13)(lightningcss@1.32.0)(terser@5.48.0)
+      vite: 5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0)
+      vite-node: 2.1.9(@types/node@26.1.1)(lightningcss@1.32.0)(terser@5.49.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 22.19.13
+      '@types/node': 26.1.1
       jsdom: 28.1.0
     transitivePeerDependencies:
       - less
@@ -14266,20 +14418,20 @@ snapshots:
       - tslib
       - utf-8-validate
 
-  webpack-sources@3.5.0: {}
+  webpack-sources@3.5.1: {}
 
   webpack@5.108.4(lightningcss@1.32.0):
     dependencies:
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.9
       '@types/json-schema': 7.0.15
       '@webassemblyjs/ast': 1.14.1
       '@webassemblyjs/wasm-edit': 1.14.1
       '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.16.0
-      acorn-import-phases: 1.0.4(acorn@8.16.0)
-      browserslist: 4.28.4
+      acorn: 8.17.0
+      acorn-import-phases: 1.0.4(acorn@8.17.0)
+      browserslist: 4.28.5
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.24.1
+      enhanced-resolve: 5.24.2
       es-module-lexer: 2.3.0
       eslint-scope: 5.1.1
       events: 3.3.0
@@ -14291,7 +14443,7 @@ snapshots:
       schema-utils: 4.3.3
       tapable: 2.3.3
       watchpack: 2.5.2
-      webpack-sources: 3.5.0
+      webpack-sources: 3.5.1
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@swc/core'
@@ -14308,16 +14460,16 @@ snapshots:
 
   webpack@5.108.4(lightningcss@1.32.0)(postcss@8.5.16):
     dependencies:
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.9
       '@types/json-schema': 7.0.15
       '@webassemblyjs/ast': 1.14.1
       '@webassemblyjs/wasm-edit': 1.14.1
       '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.16.0
-      acorn-import-phases: 1.0.4(acorn@8.16.0)
-      browserslist: 4.28.4
+      acorn: 8.17.0
+      acorn-import-phases: 1.0.4(acorn@8.17.0)
+      browserslist: 4.28.5
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.24.1
+      enhanced-resolve: 5.24.2
       es-module-lexer: 2.3.0
       eslint-scope: 5.1.1
       events: 3.3.0
@@ -14329,7 +14481,7 @@ snapshots:
       schema-utils: 4.3.3
       tapable: 2.3.3
       watchpack: 2.5.2
-      webpack-sources: 3.5.0
+      webpack-sources: 3.5.1
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@swc/core'
