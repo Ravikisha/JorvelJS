@@ -54,7 +54,7 @@
     "@jorvel/ssr": "workspace:*",
     "@jorvel/types": "workspace:*",
     "tree-kill": "^1.2.2",
-    "chokidar": "^4.0.3"
+    "chokidar": "^5.0.0"
   },
   "optionalDependencies": {
     "sharp": "^0.34.2"
